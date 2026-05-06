@@ -7,7 +7,8 @@ CONF_DIR="$REPO_BASE/conf"
 SOURCE_DIR="$REPO_BASE/source"
 OAI_DIR="$SOURCE_DIR/openairinterface5g"
 MONOLITHIC_OAI="$HOME/monolithic/openairinterface5g"
-CN_DIR="$SOURCE_DIR/oai-cn5g"
+MONOLITHIC_BASE="$HOME/monolithic"
+CN_DIR="$MONOLITHIC_BASE/configuration"
 LOG_DIR="${LOG_DIR:-/tmp}"
 CU_LOG="$LOG_DIR/cu.log"
 
@@ -26,9 +27,8 @@ else
 fi
 
 # Copy sib8.conf if it exists
-if [ -f "$SIB8_CONF" ]; then
-    mkdir -p "$(dirname "$OAI_CONF_DIR/../../../sib8.conf")"
-    cp "$SIB8_CONF" "$(dirname "$OAI_CONF_DIR/../../../sib8.conf")/" 2>/dev/null || true
+if [ -f "$SIB8_CONF" ] && [ ! -f "$OAI_CONF_DIR/sib8.conf" ]; then
+    cp "$SIB8_CONF" "$OAI_CONF_DIR/" 2>/dev/null || true
 fi
 
 echo "[CU start] Generating CU config..."
