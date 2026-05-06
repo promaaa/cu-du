@@ -2,11 +2,11 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_BASE="$HOME/cu-du"
+REPO_BASE="/home/serber/cu-du"
 CONF_DIR="$REPO_BASE/conf"
 SOURCE_DIR="$REPO_BASE/source"
 OAI_DIR="$SOURCE_DIR/openairinterface5g"
-MONOLITHIC_OAI="$HOME/monolithic/openairinterface5g"
+MONOLITHIC_OAI="/home/serber/monolithic/openairinterface5g"
 LOG_DIR="${LOG_DIR:-/tmp}"
 DU_LOG="$LOG_DIR/du.log"
 
