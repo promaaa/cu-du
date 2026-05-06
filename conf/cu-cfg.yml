@@ -1,8 +1,8 @@
 host: serber-firecell
 role: cu
 plmn:
-  mcc: 001
-  mnc: 01
+  mcc: 1
+  mnc: 1
   mnc_length: 2
 amf:
   ip: 192.168.70.132
@@ -10,7 +10,7 @@ amf:
 cu:
   f1c_ip: 10.76.170.38
   f1c_port: 2152
-  f1u_ip: 10.76.170.39
+  f1u_ip: 10.76.170.38
   ng_ip: 192.168.70.129
   gnb_id: 0xe00
   gnb_name: gNB-CU-FIRECELL
