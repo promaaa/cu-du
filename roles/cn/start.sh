@@ -2,7 +2,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_BASE="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+REPO_BASE="$HOME/cu-du"
 CN_DIR="$REPO_BASE/source/oai-cn5g"
 
 echo "[CN start] Starting Core Network..."
