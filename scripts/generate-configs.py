@@ -31,8 +31,8 @@ def replace_in_text(text, key, value):
     escaped_key = re.escape(key)
     pattern = re.compile(rf'^(\s*{escaped_key}\s*=).*$', re.MULTILINE)
     replacement = rf'\1 {value}'
-    count = pattern.sub(replacement, text)
-    return count, text
+    count, new_text = pattern.subn(replacement, text)
+    return count, new_text
 
 
 def read_file(path):
