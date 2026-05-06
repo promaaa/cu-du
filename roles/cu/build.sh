@@ -13,13 +13,17 @@ source "$CONF_DIR/env.sh"
 
 echo "[CU build] Starting..."
 
-# Clone OAI source if not present
-if [ ! -d "$OAI_DIR/.git" ]; then
+# Use existing OAI source if available, otherwise clone
+MONOLITHIC_OAI="$HOME/monolithic/openairinterface5g"
+if [ -d "$MONOLITHIC_OAI/.git" ]; then
+    echo "[CU build] Using existing OAI source at $MONOLITHIC_OAI"
+    OAI_DIR="$MONOLITHIC_OAI"
+    cd "$OAI_DIR"
+elif [ ! -d "$OAI_DIR/.git" ]; then
     echo "[CU build] Cloning OAI source..."
     git clone https://gitlab.eurecom.fr/oai/openairinterface5g.git "$OAI_DIR"
     cd "$OAI_DIR"
 else
-    echo "[CU build] OAI source already present"
     cd "$OAI_DIR"
 fi
 
