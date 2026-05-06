@@ -62,14 +62,22 @@ else
     echo "[DU build] UHD already installed"
 fi
 
-# Install OAI dependencies
-echo "[DU build] Installing OAI dependencies..."
-cd "$OAI_DIR/cmake_targets"
-sudo ./build_oai -I
+# Install OAI dependencies only if asn1c not present
+if [ ! -d /tmp/asn1c ] || [ ! -f /tmp/asn1c/skeleton/asn1_constants.h ]; then
+    echo "[DU build] Installing OAI dependencies (asn1c missing)..."
+    cd "$OAI_DIR/cmake_targets"
+    sudo ./build_oai -I
+else
+    echo "[DU build] Dependencies already installed (asn1c present), skipping -I"
+fi
 
-# Build nr-softmodem for DU mode (PHY+MAC is memory-intensive — cap at -j4)
-echo "[DU build] Building nr-softmodem (DU, -j4 cap for weak host)..."
-cd "$OAI_DIR/cmake_targets"
-sudo ./build_oai -w USRP --ninja --gNB -C -j4
+# Build nr-softmodem for DU mode (only if binary not already built)
+if [ -f "$OAI_DIR/cmake_targets/ran_build/build/nr-softmodem" ]; then
+    echo "[DU build] Binary already exists, skipping build"
+else
+    echo "[DU build] Building nr-softmodem (DU, -j4 cap for weak host)..."
+    cd "$OAI_DIR/cmake_targets"
+    sudo ./build_oai -w USRP --ninja --gNB -C -j4
+fi
 
 echo "[DU build] Done."

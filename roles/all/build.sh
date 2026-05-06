@@ -62,14 +62,22 @@ else
     echo "[ALL build] UHD already installed"
 fi
 
-# Install OAI dependencies
-echo "[ALL build] Installing OAI dependencies..."
-cd "$OAI_DIR/cmake_targets"
-sudo ./build_oai -I
+# Install OAI dependencies only if asn1c not present
+if [ ! -d /tmp/asn1c ] || [ ! -f /tmp/asn1c/skeleton/asn1_constants.h ]; then
+    echo "[ALL build] Installing OAI dependencies (asn1c missing)..."
+    cd "$OAI_DIR/cmake_targets"
+    sudo ./build_oai -I
+else
+    echo "[ALL build] Dependencies already installed (asn1c present), skipping -I"
+fi
 
-# Build nr-softmodem in monolithic mode (CU+DU combined)
-echo "[ALL build] Building nr-softmodem (monolithic, full parallelism)..."
-cd "$OAI_DIR/cmake_targets"
-sudo ./build_oai -w USRP --ninja --gNB -C
+# Build nr-softmodem in monolithic mode (only if binary not already built)
+if [ -f "$OAI_DIR/cmake_targets/ran_build/build/nr-softmodem" ]; then
+    echo "[ALL build] Binary already exists, skipping build"
+else
+    echo "[ALL build] Building nr-softmodem (monolithic, full parallelism)..."
+    cd "$OAI_DIR/cmake_targets"
+    sudo ./build_oai -w USRP --ninja --gNB -C
+fi
 
 echo "[ALL build] Done."
