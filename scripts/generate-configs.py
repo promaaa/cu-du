@@ -83,6 +83,7 @@ def apply_cu_config(text, cfg):
     n, text = replace_key_line(text, 'amf_ip_address', f'("{amf["ip"]}/{amf["port"]}")'); total += n
     n, text = replace_key_line(text, 'GNB_IPV4_ADDRESS_FOR_NG_AMF', f'"{cu["ng_ip"]}"'); total += n
     n, text = replace_key_line(text, 'GNB_IPV4_ADDRESS_FOR_NGU', f'"{cu["f1u_ip"]}"'); total += n
+    n, text = replace_key_line(text, 'GNB_PORT_FOR_S1U', '2153'); total += n
     n, text = replace_key_inline(text, 'sst', '1'); total += n
     n, text = replace_key_inline(text, 'sd', '1'); total += n
 
@@ -113,6 +114,7 @@ def apply_du_config(text, cfg):
     if 'max_pdschReferenceSignalPower' in usrp:
         n, text = replace_key_line(text, 'max_pdschReferenceSignalPower', str(usrp['max_pdschReferenceSignalPower'])); total += n
     n, text = replace_key_line(text, 'GNB_IPV4_ADDRESS_FOR_NGU', f'"{cu["f1u_ip"]}"'); total += n
+    n, text = replace_key_line(text, 'GNB_PORT_FOR_S1U', '2153'); total += n
     n, text = replace_key_inline(text, 'sst', '1'); total += n
     n, text = replace_key_inline(text, 'sd', '1'); total += n
 
