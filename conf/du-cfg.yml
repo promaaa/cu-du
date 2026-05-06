@@ -1,13 +1,13 @@
 host: serber-minipc
 role: du
 plmn:
-  mcc: 001
-  mnc: 01
+  mcc: 1
+  mnc: 1
   mnc_length: 2
 cu:
   f1c_ip: 10.76.170.100
+  f1u_ip: 10.76.170.100
   f1c_port: 2152
-  f1u_ip: 10.76.170.101
   remote_f1c_ip: 10.76.170.38
   remote_f1c_port: 2152
   gnb_id: 0xe00
