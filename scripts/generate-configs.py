@@ -48,7 +48,7 @@ def apply_cu_config(text, cfg):
     n, text = replace_key(text, 'mcc', str(plmn['mcc'])); total += n
     n, text = replace_key(text, 'mnc', str(plmn['mnc'])); total += n
     n, text = replace_key(text, 'mnc_length', str(plmn['mnc_length'])); total += n
-    n, text = replace_key(text, 'tracking_area_code', f'"{cu["tac"]}"'); total += n
+    n, text = replace_key(text, 'tracking_area_code', str(cu['tac'])); total += n
     n, text = replace_key(text, 'local_s_address', f'"{cu["f1c_ip"]}"'); total += n
     n, text = replace_key(text, 'remote_s_address', f'"{cu["f1c_ip"]}"'); total += n
     n, text = replace_key(text, 'local_address', f'"{cu["f1u_ip"]}"'); total += n
@@ -75,7 +75,7 @@ def apply_du_config(text, cfg):
     n, text = replace_key(text, 'mcc', str(plmn['mcc'])); total += n
     n, text = replace_key(text, 'mnc', str(plmn['mnc'])); total += n
     n, text = replace_key(text, 'mnc_length', str(plmn['mnc_length'])); total += n
-    n, text = replace_key(text, 'tracking_area_code', f'"{cu["tac"]}"'); total += n
+    n, text = replace_key(text, 'tracking_area_code', str(cu['tac'])); total += n
     n, text = replace_key(text, 'local_s_address', f'"{cu["f1c_ip"]}"'); total += n
     n, text = replace_key(text, 'remote_s_address', f'"{cu["remote_f1c_ip"]}"'); total += n
     n, text = replace_key(text, 'local_port', str(cu['f1c_port'])); total += n
