@@ -24,8 +24,8 @@ def load_yaml(path):
         return yaml_inst.load(f)
 
 
-def replace_key(text, key, value):
-    """Replace all occurrences of key = value pattern in config text, preserving line endings."""
+def replace_key_line(text, key, value):
+    """Replace key = value at start of line (with leading whitespace)."""
     pattern = re.compile(rf'^(\s*{re.escape(key)}\s*=\s*).*?(\s*;?\s*)$', re.MULTILINE)
     count = 0
     def repl(m):
@@ -36,28 +36,48 @@ def replace_key(text, key, value):
     return count, new_text
 
 
+def replace_key_inline(text, key, value):
+    """Replace key = value anywhere in line (for inline configs like plmn_list)."""
+    pattern = re.compile(rf'({re.escape(key)}\s*=\s*)[^;,\s]+')
+    count = 0
+    def repl(m):
+        nonlocal count
+        count += 1
+        return m.group(1) + value
+    new_text = pattern.sub(repl, text)
+    return count, new_text
+
+
+def replace_plmn_list(text, mcc, mnc, mnc_length):
+    """Replace the entire plmn_list = ({ ... }) block."""
+    new_plmn = f'plmn_list = ({{ mcc = {mcc}; mnc = {mnc}; mnc_length = {mnc_length}; snssaiList = ({{ sst = 1 }}) }});'
+    pattern = re.compile(r'plmn_list\s*=\s*\(\{[^}]+\}\);?\s*')
+    count, new_text = 0, pattern.sub(new_plmn, text)
+    if new_text != text:
+        count = 1
+    return count, new_text
+
+
 def apply_cu_config(text, cfg):
     cu = cfg['cu']
     plmn = cfg['plmn']
     amf = cfg['amf']
 
     total = 0
-    n, text = replace_key(text, 'gNB_ID', hex(cu['gnb_id'])); total += n
-    n, text = replace_key(text, 'gNB_name', f'"{cu["gnb_name"]}"'); total += n
-    n, text = replace_key(text, 'F1AP_MODE', '"cu"'); total += n
-    n, text = replace_key(text, 'mcc', str(plmn['mcc'])); total += n
-    n, text = replace_key(text, 'mnc', str(plmn['mnc'])); total += n
-    n, text = replace_key(text, 'mnc_length', str(plmn['mnc_length'])); total += n
-    n, text = replace_key(text, 'tracking_area_code', str(cu['tac'])); total += n
-    n, text = replace_key(text, 'local_s_address', f'"{cu["f1c_ip"]}"'); total += n
-    n, text = replace_key(text, 'remote_s_address', f'"{cu["f1c_ip"]}"'); total += n
-    n, text = replace_key(text, 'local_address', f'"{cu["f1u_ip"]}"'); total += n
-    n, text = replace_key(text, 'local_address', f'"{cu["ng_ip"]}"'); total += n
-    n, text = replace_key(text, 'remote_address', f'"{amf["ip"]}"'); total += n
-    n, text = replace_key(text, 'remote_port', str(amf['port'])); total += n
-    n, text = replace_key(text, 'amf_ip_address', f'("{amf["ip"]}/{amf["port"]}")'); total += n
-    n, text = replace_key(text, 'sst', '1'); total += n
-    n, text = replace_key(text, 'sd', '1'); total += n
+    n, text = replace_key_line(text, 'gNB_ID', hex(cu['gnb_id'])); total += n
+    n, text = replace_key_line(text, 'gNB_name', f'"{cu["gnb_name"]}"'); total += n
+    n, text = replace_key_line(text, 'F1AP_MODE', '"cu"'); total += n
+    n, text = replace_plmn_list(text, plmn['mcc'], plmn['mnc'], plmn['mnc_length']); total += n
+    n, text = replace_key_line(text, 'tracking_area_code', str(cu['tac'])); total += n
+    n, text = replace_key_line(text, 'local_s_address', f'"{cu["f1c_ip"]}"'); total += n
+    n, text = replace_key_line(text, 'remote_s_address', f'"{cu["f1c_ip"]}"'); total += n
+    n, text = replace_key_line(text, 'local_address', f'"{cu["f1u_ip"]}"'); total += n
+    n, text = replace_key_line(text, 'local_address', f'"{cu["ng_ip"]}"'); total += n
+    n, text = replace_key_line(text, 'remote_address', f'"{amf["ip"]}"'); total += n
+    n, text = replace_key_line(text, 'remote_port', str(amf['port'])); total += n
+    n, text = replace_key_line(text, 'amf_ip_address', f'("{amf["ip"]}/{amf["port"]}")'); total += n
+    n, text = replace_key_inline(text, 'sst', '1'); total += n
+    n, text = replace_key_inline(text, 'sd', '1'); total += n
 
     return total, text
 
@@ -68,25 +88,23 @@ def apply_du_config(text, cfg):
     usrp = cfg['usrp']
 
     total = 0
-    n, text = replace_key(text, 'gNB_ID', hex(cu['gnb_id'])); total += n
-    n, text = replace_key(text, 'gNB_DU_ID', hex(cu['gnb_du_id'])); total += n
-    n, text = replace_key(text, 'gNB_name', f'"{cu["gnb_name"]}"'); total += n
-    n, text = replace_key(text, 'F1AP_MODE', '"du"'); total += n
-    n, text = replace_key(text, 'mcc', str(plmn['mcc'])); total += n
-    n, text = replace_key(text, 'mnc', str(plmn['mnc'])); total += n
-    n, text = replace_key(text, 'mnc_length', str(plmn['mnc_length'])); total += n
-    n, text = replace_key(text, 'tracking_area_code', str(cu['tac'])); total += n
-    n, text = replace_key(text, 'local_s_address', f'"{cu["f1c_ip"]}"'); total += n
-    n, text = replace_key(text, 'remote_s_address', f'"{cu["remote_f1c_ip"]}"'); total += n
-    n, text = replace_key(text, 'local_port', str(cu['f1c_port'])); total += n
-    n, text = replace_key(text, 'remote_port', str(cu['remote_f1c_port'])); total += n
-    n, text = replace_key(text, 'local_address', f'"{cu["f1u_ip"]}"'); total += n
-    n, text = replace_key(text, 'sdr_addrs', f'"serial={usrp["serial"]}"'); total += n
-    n, text = replace_key(text, 'max_rxgain', str(usrp['max_rxgain'])); total += n
-    n, text = replace_key(text, 'att_tx', str(usrp['att_tx'])); total += n
-    n, text = replace_key(text, 'att_rx', str(usrp['att_rx'])); total += n
+    n, text = replace_key_line(text, 'gNB_ID', hex(cu['gnb_id'])); total += n
+    n, text = replace_key_line(text, 'gNB_DU_ID', hex(cu['gnb_du_id'])); total += n
+    n, text = replace_key_line(text, 'gNB_name', f'"{cu["gnb_name"]}"'); total += n
+    n, text = replace_key_line(text, 'F1AP_MODE', '"du"'); total += n
+    n, text = replace_plmn_list(text, plmn['mcc'], plmn['mnc'], plmn['mnc_length']); total += n
+    n, text = replace_key_line(text, 'tracking_area_code', str(cu['tac'])); total += n
+    n, text = replace_key_line(text, 'local_s_address', f'"{cu["f1c_ip"]}"'); total += n
+    n, text = replace_key_line(text, 'remote_s_address', f'"{cu["remote_f1c_ip"]}"'); total += n
+    n, text = replace_key_line(text, 'local_port', str(cu['f1c_port'])); total += n
+    n, text = replace_key_line(text, 'remote_port', str(cu['remote_f1c_port'])); total += n
+    n, text = replace_key_line(text, 'local_address', f'"{cu["f1u_ip"]}"'); total += n
+    n, text = replace_key_line(text, 'sdr_addrs', f'"serial={usrp["serial"]}"'); total += n
+    n, text = replace_key_line(text, 'max_rxgain', str(usrp['max_rxgain'])); total += n
+    n, text = replace_key_line(text, 'att_tx', str(usrp['att_tx'])); total += n
+    n, text = replace_key_line(text, 'att_rx', str(usrp['att_rx'])); total += n
     if 'max_pdschReferenceSignalPower' in usrp:
-        n, text = replace_key(text, 'max_pdschReferenceSignalPower', str(usrp['max_pdschReferenceSignalPower'])); total += n
+        n, text = replace_key_line(text, 'max_pdschReferenceSignalPower', str(usrp['max_pdschReferenceSignalPower'])); total += n
 
     return total, text
 
