@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate gnb-cu.conf and gnb-du.conf by modifying OAI reference configs via sed."""
+"""Generate gnb-cu.conf and gnb-du.conf by modifying OAI reference configs."""
 
 import sys
 import os
@@ -7,43 +7,35 @@ import shutil
 import re
 from ruamel.yaml import YAML
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_BASE = os.path.dirname(SCRIPT_DIR)
-CONF_DIR = os.path.join(REPO_BASE, 'conf')
-MONOLITHIC_OAI = os.path.expanduser('~/monolithic/openairinterface5g')
+MONOLITHIC_OAI = '/home/serber/monolithic/openairinterface5g'
 REF_CU = os.path.join(MONOLITHIC_OAI, 'targets/PROJECTS/GENERIC-NR-5GC/CONF/cu_gnb.conf')
 REF_DU = os.path.join(MONOLITHIC_OAI, 'targets/PROJECTS/GENERIC-NR-5GC/CONF/du_gnb.conf')
 OUT_CU = os.path.join(MONOLITHIC_OAI, 'targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.conf')
 OUT_DU = os.path.join(MONOLITHIC_OAI, 'targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.conf')
+CONF_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'conf')
 SIB8_SRC = os.path.join(MONOLITHIC_OAI, 'sib8.conf')
 SIB8_DST = os.path.join(MONOLITHIC_OAI, 'sib8.conf')
 
-yaml = YAML()
+yaml_inst = YAML()
 
 
 def load_yaml(path):
     with open(path) as f:
-        return yaml.load(f)
+        return yaml_inst.load(f)
 
 
-def replace_in_text(text, key, value):
-    """Replace a key = value pair in libconfig text, preserving formatting."""
-    escaped_key = re.escape(key)
-    pattern = re.compile(rf'^(\s*{escaped_key}\s*=).*$', re.MULTILINE)
-    replacement = rf'\1 {value}'
-    count, new_text = pattern.subn(replacement, text)
-    return count, new_text
-
-
-def read_file(path):
-    with open(path) as f:
-        return f.read()
-
-
-def write_file(path, content):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'w') as f:
-        f.write(content)
+def do_replacement(text, key, value):
+    lines = text.split('\n')
+    result_lines = []
+    replacements = 0
+    for line in lines:
+        m = re.match(r'^(\s*' + re.escape(key) + r'\s*=)(.*)$', line)
+        if m:
+            result_lines.append(m.group(1) + ' ' + value)
+            replacements += 1
+        else:
+            result_lines.append(line)
+    return replacements, '\n'.join(result_lines)
 
 
 def apply_cu_config(text, cfg):
@@ -51,28 +43,24 @@ def apply_cu_config(text, cfg):
     plmn = cfg['plmn']
     amf = cfg['amf']
 
-    count = 0
-    count_, text = replace_in_text(text, 'gNB_ID', hex(cu['gnb_id'])); count += count_
-    count_, text = replace_in_text(text, 'gNB_Name', f'"{cu["gnb_name"]}"'); count += count_
-    count_, text = replace_in_text(text, 'F1AP_MODE', '"cu"'); count += count_
-    count_, text = replace_in_text(text, 'mcc', f'"{plmn["mcc"]}"'); count += count_
-    count_, text = replace_in_text(text, 'mnc', f'"{plmn["mnc"]}"'); count += count_
-    count_, text = replace_in_text(text, 'mnc_length', str(plmn['mnc_length'])); count += count_
-    count_, text = replace_in_text(text, 'tracking_area_code', f'"{cu["tac"]}"'); count += count_
+    total = 0
+    n, text = do_replacement(text, 'gNB_ID', hex(cu['gnb_id'])); total += n
+    n, text = do_replacement(text, 'gNB_Name', f'"{cu["gnb_name"]}"'); total += n
+    n, text = do_replacement(text, 'F1AP_MODE', '"cu"'); total += n
+    n, text = do_replacement(text, 'mcc', f'"{plmn["mcc"]}"'); total += n
+    n, text = do_replacement(text, 'mnc', f'"{plmn["mnc"]}"'); total += n
+    n, text = do_replacement(text, 'mnc_length', str(plmn['mnc_length'])); total += n
+    n, text = do_replacement(text, 'tracking_area_code', f'"{cu["tac"]}"'); total += n
+    n, text = do_replacement(text, 'local_s_address', f'"{cu["f1c_ip"]}"'); total += n
+    n, text = do_replacement(text, 'remote_s_address', f'"{cu["f1c_ip"]}"'); total += n
+    n, text = do_replacement(text, 'local_address', f'"{cu["f1u_ip"]}"'); total += n
+    n, text = do_replacement(text, 'remote_address', f'"{amf["ip"]}"'); total += n
+    n, text = do_replacement(text, 'remote_port', str(amf['port'])); total += n
+    n, text = do_replacement(text, 'amf_ip_address', f'("{amf["ip"]}/{amf["port"]}")'); total += n
+    n, text = do_replacement(text, 'sst', '(1)'); total += n
+    n, text = do_replacement(text, 'sd', '(1)'); total += n
 
-    count_, text = replace_in_text(text, 'local_s_address', f'"{cu["f1c_ip"]}"'); count += count_
-    count_, text = replace_in_text(text, 'remote_s_address', f'"{cu["f1c_ip"]}"'); count += count_
-    count_, text = replace_in_text(text, 'local_address', f'"{cu["f1u_ip"]}"'); count += count_
-
-    count_, text = replace_in_text(text, 'local_address', f'"{cu["ng_ip"]}"'); count += count_
-    count_, text = replace_in_text(text, 'remote_address', f'"{amf["ip"]}"'); count += count_
-    count_, text = replace_in_text(text, 'remote_port', str(amf['port'])); count += count_
-    count_, text = replace_in_text(text, 'amf_ip_address', f'("{amf["ip"]}/{amf["port"]}")'); count += count_
-
-    count_, text = replace_in_text(text, 'sst', '(1)'); count += count_
-    count_, text = replace_in_text(text, 'sd', '(1)'); count += count_
-
-    return count, text
+    return total, text
 
 
 def apply_du_config(text, cfg):
@@ -80,32 +68,28 @@ def apply_du_config(text, cfg):
     plmn = cfg['plmn']
     usrp = cfg['usrp']
 
-    count = 0
-    count_, text = replace_in_text(text, 'gNB_ID', hex(cu['gnb_id'])); count += count_
-    count_, text = replace_in_text(text, 'gNB_DU_ID', hex(cu['gnb_du_id'])); count += count_
-    count_, text = replace_in_text(text, 'gNB_Name', f'"{cu["gnb_name"]}"'); count += count_
-    count_, text = replace_in_text(text, 'F1AP_MODE', '"du"'); count += count_
-    count_, text = replace_in_text(text, 'mcc', f'"{plmn["mcc"]}"'); count += count_
-    count_, text = replace_in_text(text, 'mnc', f'"{plmn["mnc"]}"'); count += count_
-    count_, text = replace_in_text(text, 'mnc_length', str(plmn['mnc_length'])); count += count_
-    count_, text = replace_in_text(text, 'tracking_area_code', f'"{cu["tac"]}"'); count += count_
-
-    count_, text = replace_in_text(text, 'local_s_address', f'"{cu["f1c_ip"]}"'); count += count_
-    count_, text = replace_in_text(text, 'remote_s_address', f'"{cu["remote_f1c_ip"]}"'); count += count_
-    count_, text = replace_in_text(text, 'local_port', str(cu['f1c_port'])); count += count_
-    count_, text = replace_in_text(text, 'remote_port', str(cu['remote_f1c_port'])); count += count_
-    count_, text = replace_in_text(text, 'local_address', f'"{cu["f1u_ip"]}"'); count += count_
-
-    count_, text = replace_in_text(text, 'sdr_addrs', f'"serial={usrp["serial"]}"'); count += count_
-    count_, text = replace_in_text(text, 'max_rxgain', str(usrp['max_rxgain'])); count += count_
-    count_, text = replace_in_text(text, 'att_tx', str(usrp['att_tx'])); count += count_
-    count_, text = replace_in_text(text, 'att_rx', str(usrp['att_rx'])); count += count_
-
+    total = 0
+    n, text = do_replacement(text, 'gNB_ID', hex(cu['gnb_id'])); total += n
+    n, text = do_replacement(text, 'gNB_DU_ID', hex(cu['gnb_du_id'])); total += n
+    n, text = do_replacement(text, 'gNB_Name', f'"{cu["gnb_name"]}"'); total += n
+    n, text = do_replacement(text, 'F1AP_MODE', '"du"'); total += n
+    n, text = do_replacement(text, 'mcc', f'"{plmn["mcc"]}"'); total += n
+    n, text = do_replacement(text, 'mnc', f'"{plmn["mnc"]}"'); total += n
+    n, text = do_replacement(text, 'mnc_length', str(plmn['mnc_length'])); total += n
+    n, text = do_replacement(text, 'tracking_area_code', f'"{cu["tac"]}"'); total += n
+    n, text = do_replacement(text, 'local_s_address', f'"{cu["f1c_ip"]}"'); total += n
+    n, text = do_replacement(text, 'remote_s_address', f'"{cu["remote_f1c_ip"]}"'); total += n
+    n, text = do_replacement(text, 'local_port', str(cu['f1c_port'])); total += n
+    n, text = do_replacement(text, 'remote_port', str(cu['remote_f1c_port'])); total += n
+    n, text = do_replacement(text, 'local_address', f'"{cu["f1u_ip"]}"'); total += n
+    n, text = do_replacement(text, 'sdr_addrs', f'"serial={usrp["serial"]}"'); total += n
+    n, text = do_replacement(text, 'max_rxgain', str(usrp['max_rxgain'])); total += n
+    n, text = do_replacement(text, 'att_tx', str(usrp['att_tx'])); total += n
+    n, text = do_replacement(text, 'att_rx', str(usrp['att_rx'])); total += n
     if 'max_pdschReferenceSignalPower' in usrp:
-        count_, text = replace_in_text(text, 'max_pdschReferenceSignalPower',
-                                       str(usrp['max_pdschReferenceSignalPower'])); count += count_
+        n, text = do_replacement(text, 'max_pdschReferenceSignalPower', str(usrp['max_pdschReferenceSignalPower'])); total += n
 
-    return count, text
+    return total, text
 
 
 def copy_sib8():
@@ -126,9 +110,12 @@ def main():
             print(f"ERROR: Reference CU config not found at {REF_CU}")
             sys.exit(1)
         cfg = load_yaml(os.path.join(CONF_DIR, 'cu-cfg.yml'))
-        text = read_file(REF_CU)
+        with open(REF_CU) as f:
+            text = f.read()
         count, text = apply_cu_config(text, cfg)
-        write_file(OUT_CU, text)
+        os.makedirs(os.path.dirname(OUT_CU), exist_ok=True)
+        with open(OUT_CU, 'w') as f:
+            f.write(text)
         print(f"Generated {OUT_CU} ({count} substitutions)")
 
     if mode in ('du', 'all'):
@@ -136,9 +123,12 @@ def main():
             print(f"ERROR: Reference DU config not found at {REF_DU}")
             sys.exit(1)
         cfg = load_yaml(os.path.join(CONF_DIR, 'du-cfg.yml'))
-        text = read_file(REF_DU)
+        with open(REF_DU) as f:
+            text = f.read()
         count, text = apply_du_config(text, cfg)
-        write_file(OUT_DU, text)
+        os.makedirs(os.path.dirname(OUT_DU), exist_ok=True)
+        with open(OUT_DU, 'w') as f:
+            f.write(text)
         print(f"Generated {OUT_DU} ({count} substitutions)")
 
     copy_sib8()
