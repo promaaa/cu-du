@@ -34,6 +34,12 @@ fi
 echo "[CU start] Generating CU config..."
 "$SCRIPT_DIR/../../scripts/generate-configs.sh" cu
 
+# Copy generated CU config to monolithic OAI path if using monolithic
+if [ -d "$MONOLITHIC_OAI/cmake_targets/ran_build/build" ]; then
+    mkdir -p "$MONOLITHIC_OAI/targets/PROJECTS/GENERIC-NR-5GC/CONF"
+    cp "$OAI_DIR/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.conf" "$MONOLITHIC_OAI/targets/PROJECTS/GENERIC-NR-5GC/CONF/" 2>/dev/null || true
+fi
+
 # Start Core Network (docker compose)
 echo "[CU start] Starting Core Network..."
 docker compose -f "$CN_DIR/docker-compose.yml" down 2>/dev/null || true

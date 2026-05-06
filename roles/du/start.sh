@@ -25,13 +25,18 @@ else
 fi
 
 # Copy sib8.conf if it exists
-if [ -f "$SIB8_CONF" ]; then
-    mkdir -p "$(dirname "$OAI_CONF_DIR/../../../sib8.conf")"
-    cp "$SIB8_CONF" "$(dirname "$OAI_CONF_DIR/../../../sib8.conf")/" 2>/dev/null || true
+if [ -f "$SIB8_CONF" ] && [ ! -f "$OAI_CONF_DIR/sib8.conf" ]; then
+    cp "$SIB8_CONF" "$OAI_CONF_DIR/" 2>/dev/null || true
 fi
 
 echo "[DU start] Generating DU config..."
 "$SCRIPT_DIR/../../scripts/generate-configs.sh" du
+
+# Copy generated DU config to monolithic OAI path if using monolithic
+if [ -d "$MONOLITHIC_OAI/cmake_targets/ran_build/build" ]; then
+    mkdir -p "$MONOLITHIC_OAI/targets/PROJECTS/GENERIC-NR-5GC/CONF"
+    cp "$OAI_DIR/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.conf" "$MONOLITHIC_OAI/targets/PROJECTS/GENERIC-NR-5GC/CONF/" 2>/dev/null || true
+fi
 
 # Start DU binary
 echo "[DU start] Starting DU binary..."
