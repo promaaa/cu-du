@@ -50,9 +50,14 @@ def replace_key_inline(text, key, value):
 
 def replace_plmn_list(text, mcc, mnc, mnc_length):
     """Replace the entire plmn_list = ({ ... }) block."""
-    new_plmn = f'plmn_list = ({{ mcc = {mcc}; mnc = {mnc}; mnc_length = {mnc_length}; snssaiList = ({{ sst = 1 }}) }});'
-    pattern = re.compile(r'plmn_list\s*=\s*\(\{[^}]+\}\);?\s*')
-    count, new_text = 0, pattern.sub(new_plmn, text)
+    def repl(m):
+        inner = m.group(0)
+        inner = re.sub(r'mcc\s*=\s*\d+', f'mcc = {mcc}', inner)
+        inner = re.sub(r'mnc\s*=\s*\d+', f'mnc = {mnc}', inner)
+        inner = re.sub(r'mnc_length\s*=\s*\d+', f'mnc_length = {mnc_length}', inner)
+        return inner
+    pattern = re.compile(r'plmn_list\s*=\s*\(\{[^}]+\}\)')
+    count, new_text = 0, pattern.sub(repl, text)
     if new_text != text:
         count = 1
     return count, new_text
