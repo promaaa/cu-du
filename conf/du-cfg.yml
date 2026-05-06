@@ -1,0 +1,24 @@
+host: serber-minipc
+role: du
+plmn:
+  mcc: 001
+  mnc: 01
+  mnc_length: 2
+cu:
+  f1c_ip: 10.76.170.100
+  f1c_port: 2152
+  f1u_ip: 10.76.170.101
+  remote_f1c_ip: 10.76.170.38
+  remote_f1c_port: 2152
+  gnb_id: 0xe00
+  gnb_du_id: 0xe00
+  gnb_name: gNB-DU-MINIPC
+  tac: 1
+usrp:
+  type: b200
+  serial: 35F8ABA
+  band: 78
+  max_pdschReferenceSignalPower: -27
+  max_rxgain: 114
+  att_tx: 0
+  att_rx: 0
