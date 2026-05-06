@@ -25,13 +25,13 @@ def load_yaml(path):
 
 
 def replace_key(text, key, value):
-    """Replace all occurrences of key = value pattern in config text."""
-    pattern = re.compile(rf'^(\s*{re.escape(key)}\s*=\s*).*$', re.MULTILINE)
+    """Replace all occurrences of key = value pattern in config text, preserving line endings."""
+    pattern = re.compile(rf'^(\s*{re.escape(key)}\s*=\s*).*?(\s*;?\s*)$', re.MULTILINE)
     count = 0
     def repl(m):
         nonlocal count
         count += 1
-        return m.group(1) + value
+        return m.group(1) + value + m.group(2)
     new_text = pattern.sub(repl, text)
     return count, new_text
 
