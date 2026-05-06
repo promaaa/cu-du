@@ -19,28 +19,24 @@ if [ -d "$MONOLITHIC_OAI/.git" ]; then
     echo "[ALL build] Using existing OAI source at $MONOLITHIC_OAI"
     OAI_DIR="$MONOLITHIC_OAI"
     cd "$OAI_DIR"
-    echo "[ALL build] Checking for SIB8/PWS in source..."
-    if grep -q "build_sib8_segments" "$OAI_DIR/openair2/RRC/NR/MESSAGES/asn1_msg.c" 2>/dev/null; then
-        echo "[ALL build] SIB8/PWS already present, skipping checkout and patch"
-    else
-        echo "[ALL build] Checking out $OAI_COMMIT..."
-        git checkout "$OAI_COMMIT"
-        if [ -f "$PATCHES_DIR/oai-warning.patch" ]; then
-            echo "[ALL build] Applying oai-warning.patch..."
-            git apply "$PATCHES_DIR/oai-warning.patch" || echo "[ALL build] Patch failed, continuing..."
-        fi
-    fi
 elif [ ! -d "$OAI_DIR/.git" ]; then
     echo "[ALL build] Cloning OAI source..."
     git clone https://gitlab.eurecom.fr/oai/openairinterface5g.git "$OAI_DIR"
     cd "$OAI_DIR"
-    git checkout "$OAI_COMMIT"
-    if [ -f "$PATCHES_DIR/oai-warning.patch" ]; then
-        echo "[ALL build] Applying oai-warning.patch..."
-        git apply "$PATCHES_DIR/oai-warning.patch" || echo "[ALL build] Patch failed, continuing..."
-    fi
 else
     cd "$OAI_DIR"
+fi
+
+# Checkout specific commit
+echo "[ALL build] Checking out $OAI_COMMIT..."
+git checkout "$OAI_COMMIT"
+
+# Apply SIB8/PWS patch only if function not already present
+if grep -q "build_sib8_segments" "$OAI_DIR/openair2/RRC/NR/MESSAGES/asn1_msg.c" 2>/dev/null; then
+    echo "[ALL build] SIB8/PWS already present in $OAI_COMMIT, skipping patch"
+elif [ -f "$PATCHES_DIR/oai-warning.patch" ]; then
+    echo "[ALL build] Applying oai-warning.patch..."
+    git apply "$PATCHES_DIR/oai-warning.patch" || echo "[ALL build] Patch failed, continuing..."
 fi
 
 # Build UHD from source if not installed
