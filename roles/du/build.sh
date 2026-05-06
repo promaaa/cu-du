@@ -31,10 +31,14 @@ fi
 echo "[DU build] Checking out $OAI_COMMIT..."
 git checkout "$OAI_COMMIT"
 
-# Apply SIB8/PWS patch
+# Apply SIB8/PWS patch only if not already applied
 if [ -f "$PATCHES_DIR/oai-warning.patch" ]; then
-    echo "[DU build] Applying oai-warning.patch..."
-    git apply "$PATCHES_DIR/oai-warning.patch"
+    if grep -q "write_replace_warning_req" "$OAI_DIR/openair2/RRC/NR/rrc_gNB_du.c" 2>/dev/null; then
+        echo "[DU build] SIB8/PWS already present in source, skipping patch"
+    else
+        echo "[DU build] Applying oai-warning.patch..."
+        git apply "$PATCHES_DIR/oai-warning.patch" || echo "[DU build] Patch failed, continuing anyway..."
+    fi
 fi
 
 # Build UHD from source if not installed
