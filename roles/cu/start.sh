@@ -2,7 +2,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_BASE="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_BASE="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CONF_DIR="$REPO_BASE/conf"
 SOURCE_DIR="$REPO_BASE/source"
 OAI_DIR="$SOURCE_DIR/openairinterface5g"
