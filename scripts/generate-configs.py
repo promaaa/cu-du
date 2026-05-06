@@ -49,18 +49,32 @@ def replace_key_inline(text, key, value):
 
 
 def replace_plmn_list(text, mcc, mnc, mnc_length):
-    """Replace the plmn_list block, preserving inner structure."""
+    """Replace the plmn_list block, preserving inner structure (handles nested braces)."""
     def repl(m):
         inner = m.group(0)
         inner = re.sub(r'mcc\s*=\s*\d+', f'mcc = {mcc}', inner)
         inner = re.sub(r'mnc\s*=\s*\d+', f'mnc = {mnc}', inner)
         inner = re.sub(r'mnc_length\s*=\s*\d+', f'mnc_length = {mnc_length}', inner)
         return inner
-    pattern = re.compile(r'plmn_list\s*=\s*\(\{[^}]+\}\)')
-    count, new_text = 0, pattern.sub(repl, text)
-    if new_text != text:
-        count = 1
-    return count, new_text
+    start = text.find('plmn_list = ({')
+    if start == -1:
+        return 0, text
+    pos = start + len('plmn_list = ({')
+    depth = 1
+    while depth > 0 and pos < len(text):
+        if text[pos] == '{' and text[pos-1] == '(':
+            depth += 1
+        elif text[pos] == '}' and text[pos-1] == ')':
+            depth -= 1
+            if depth == 0:
+                end = pos + 1
+                old_block = text[start:end]
+                new_block = repl(old_block)
+                if old_block != new_block:
+                    return 1, text[:start] + new_block + text[end:]
+                return 0, text
+        pos += 1
+    return 0, text
 
 
 def replace_macvlan_addr(text, key, value):
