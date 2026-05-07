@@ -142,6 +142,7 @@ def apply_du_config(text, cfg):
     n, text = replace_key_line(text, 'remote_n_portd', '2152'); total += n
 
     n, text = replace_key_line(text, 'sdr_addrs', f'"serial={usrp["serial"]}"'); total += n
+    n, text = replace_key_line(text, 'clock_src', f'"{usrp["clock_src"]}"'); total += n
     n, text = replace_key_line(text, 'max_rxgain', str(usrp['max_rxgain'])); total += n
     n, text = replace_key_line(text, 'att_tx', str(usrp['att_tx'])); total += n
     n, text = replace_key_line(text, 'att_rx', str(usrp['att_rx'])); total += n
