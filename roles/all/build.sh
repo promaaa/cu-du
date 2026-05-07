@@ -13,33 +13,23 @@ source "$CONF_DIR/env.sh"
 
 echo "[ALL build] Starting (CU+DU on same host)..."
 
-# Use existing OAI source if available, otherwise clone
-MONOLITHIC_OAI="$HOME/monolithic/openairinterface5g"
-if [ -d "$MONOLITHIC_OAI/.git" ]; then
-    echo "[ALL build] Using existing OAI source at $MONOLITHIC_OAI"
-    OAI_DIR="$MONOLITHIC_OAI"
-    cd "$OAI_DIR"
-elif [ ! -d "$OAI_DIR/.git" ]; then
+if [ ! -d "$OAI_DIR/.git" ]; then
     echo "[ALL build] Cloning OAI source..."
     git clone https://gitlab.eurecom.fr/oai/openairinterface5g.git "$OAI_DIR"
-    cd "$OAI_DIR"
-else
-    cd "$OAI_DIR"
 fi
 
-# Checkout specific commit
+cd "$OAI_DIR"
+
 echo "[ALL build] Checking out $OAI_COMMIT..."
 git checkout "$OAI_COMMIT"
 
-# Apply SIB8/PWS patch only if function not already present
 if grep -q "build_sib8_segments" "$OAI_DIR/openair2/RRC/NR/MESSAGES/asn1_msg.c" 2>/dev/null; then
-    echo "[ALL build] SIB8/PWS already present in $OAI_COMMIT, skipping patch"
+    echo "[ALL build] SIB8/PWS already present, skipping patch"
 elif [ -f "$PATCHES_DIR/oai-warning.patch" ]; then
     echo "[ALL build] Applying oai-warning.patch..."
     git apply "$PATCHES_DIR/oai-warning.patch" || echo "[ALL build] Patch failed, continuing..."
 fi
 
-# Build UHD from source if not installed
 if ! command -v uhd_find_devices &>/dev/null || ! uhd_find_devices 2>&1 | grep -q "B210"; then
     echo "[ALL build] Building UHD from source..."
     UHD_DIR="$REPO_BASE/uhd"
@@ -62,20 +52,18 @@ else
     echo "[ALL build] UHD already installed"
 fi
 
-# Install OAI dependencies only if asn1c not present
 if [ ! -d /tmp/asn1c ] || [ ! -f /tmp/asn1c/skeleton/asn1_constants.h ]; then
-    echo "[ALL build] Installing OAI dependencies (asn1c missing)..."
+    echo "[ALL build] Installing OAI dependencies..."
     cd "$OAI_DIR/cmake_targets"
     sudo ./build_oai -I
 else
-    echo "[ALL build] Dependencies already installed (asn1c present), skipping -I"
+    echo "[ALL build] Dependencies already installed, skipping -I"
 fi
 
-# Build nr-softmodem in monolithic mode (only if binary not already built)
 if [ -f "$OAI_DIR/cmake_targets/ran_build/build/nr-softmodem" ]; then
     echo "[ALL build] Binary already exists, skipping build"
 else
-    echo "[ALL build] Building nr-softmodem (monolithic, full parallelism)..."
+    echo "[ALL build] Building nr-softmodem (monolithic)..."
     cd "$OAI_DIR/cmake_targets"
     sudo ./build_oai -w USRP --ninja --gNB -C
 fi

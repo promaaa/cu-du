@@ -2,75 +2,147 @@
 
 ## Date: 2026-05-07
 
-## Issue: F1 Setup PLMN Mismatch - RESOLVED
+## Summary: Making Repo Self-Contained and Reproducible
 
-### Summary
-Successfully fixed F1 PLMN mismatch and got CU/DU running with F1 interface established.
+### Goal
+Make the `cu-du` repo fully reproducible — any outside person can clone and deploy with minimal effort.
 
-### Bugs Fixed
+### Changes Made
 
-#### Bug 1: PLMN values as integers instead of strings with leading zeros
-Changed `cu-cfg.yml` and `du-cfg.yml` from:
-```yaml
-plmn:
-  mcc: 1    # Integer
-  mnc: 1    # Integer
+#### 1. Fixed Hardcoded Paths in Scripts
+- `roles/du/start.sh`: Removed hardcoded `/home/serber/cu-du` and `MONOLITHIC_OAI` references. Now uses `$HOME/cu-du`.
+- `roles/cu/start.sh`: Removed `MONOLITHIC_OAI` fallback, now uses `source/openairinterface5g/` directly.
+- `roles/all/start.sh`: Same cleanup as CU/DU.
+- `roles/cu/build.sh`, `roles/du/build.sh`, `roles/all/build.sh`: Removed `MONOLITHIC_OAI` fallback, now clones OAI if not present.
+
+#### 2. Fixed `generate-configs.py`
+- Removed hardcoded `/home/serber/monolithic/openairinterface5g` paths
+- Now uses `REPO_BASE` derived from `$HOME/cu-du`
+- All paths relative to repo root
+
+#### 3. Added Reference Configs to Repo
+- `source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/cu_gnb.conf` (from OAI commit 102965a6)
+- `source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/du_gnb.conf` (same)
+- `source/oai-cn5g/` (docker-compose for core network)
+
+#### 4. Added `sib8.conf` Template
+- Created `sib8.conf` with default PWS warning message parameters
+
+#### 5. Updated `du-cfg.yml`
+- Added `clock_src: internal` to usrp section
+- `generate-configs.py` now replaces `clock_src` in DU config
+
+#### 6. Added `clock_src` and PRB Replacement to DU Config
+- `generate-configs.py` now replaces:
+  - `dl_carrierBandwidth` and `ul_carrierBandwidth` → 51 (10 MHz)
+  - `initialDLBWPlocationAndBandwidth` and `initialULBWPlocationAndBandwidth` → 13053
+  - `sdr_addrs` (with serial from du-cfg.yml)
+  - `clock_src` (with value from du-cfg.yml)
+
+#### 7. Added `.gitignore`
+- Excludes build artifacts, downloaded sources, UHD build dir, logs
+
+---
+
+## Current Repo Structure
+
 ```
-To:
-```yaml
-plmn:
-  mcc: "001"   # String with leading zeros
-  mnc: "01"    # String with leading zeros
+cu-du/
+├── .gitignore
+├── sib8.conf                          # PWS warning config
+├── conf/
+│   ├── cu-cfg.yml                     # CU parameters (IP, PLMN, AMF)
+│   ├── du-cfg.yml                     # DU parameters (IP, USRP serial, band)
+│   └── env.sh                         # Shared env vars (commit, UHD version)
+├── source/
+│   ├── openairinterface5g/            # OAI source (only CONF files stored here)
+│   │   └── targets/PROJECTS/GENERIC-NR-5GC/CONF/
+│   │       ├── cu_gnb.conf            # Reference CU config
+│   │       └── du_gnb.conf            # Reference DU config
+│   └── oai-cn5g/                      # Core Network (docker-compose)
+│       ├── docker-compose.yaml
+│       ├── conf/
+│       └── database/
+├── patches/
+│   ├── oai-warning.patch               # SIB8/PWS patch
+│   └── cross-cell.patch               # Not used in CU/DU split
+├── roles/
+│   ├── cu/                            # CU build + start scripts
+│   ├── du/                            # DU build + start scripts
+│   ├── all/                           # Monolithic (CU+DU on same host)
+│   └── cn/                            # Core network only
+├── scripts/
+│   ├── generate-configs.py            # Generates gnb-cu.conf, gnb-du.conf from YAML
+│   ├── deploy-cu.sh                   # SSH + deploy CU
+│   ├── deploy-du.sh                   # SSH + deploy DU
+│   └── check-health.sh                # Verify stack is running
+├── INSTALL.md
+├── RUN.md
+├── SPLIT.md
+└── PLAN-CU-DU.md
 ```
 
-#### Bug 2: DU's gNB_Name mismatch
-Changed `du-cfg.yml` gnb_name from `gNB-DU-MINIPC` to `gNB-CU-FIRECELL`.
+---
 
-#### Bug 3: CU's Active_gNBs not being replaced
-Added missing `Active_gNBs` replacement in `apply_cu_config()`:
-```python
-n, text = replace_key_line(text, 'Active_gNBs', f'( "{cu["gnb_name"]}")'); total += n
+## Previous: F1 Setup Issue (RESOLVED earlier)
+
+Bugs fixed before this session:
+- PLMN values as strings with leading zeros (`"001"`/`"01"`)
+- DU gNB name matching CU (`gNB-CU-FIRECELL`)
+- Active_gNBs replacement in CU config
+- USRP serial corrected to `8002816`
+- DU template got `sdr_addrs` + `clock_src: "internal"`
+- PRB reduced from 106 → 51 (10 MHz)
+
+F1 Interface Status: OPERATIONAL (from earlier commits)
+
+---
+
+## Deployment Workflow
+
+### Fresh Install on New Machine
+
+```bash
+# 1. Clone repo
+git clone https://github.com/promaaa/cu-du.git ~/cu-du
+cd ~/cu-du
+
+# 2. Build OAI (downloads source, applies patch, compiles)
+# For CU host (serber-firecell):
+~/cu-du/roles/cu/build.sh
+
+# For DU host (serber-minipc):
+~/cu-du/roles/du/build.sh
+
+# 3. Start (generates configs, starts binaries)
+# On CU:
+~/cu-du/roles/cu/start.sh
+
+# On DU:
+~/cu-du/roles/du/start.sh
 ```
 
-#### Bug 4: USRP serial incorrect
-Changed `du-cfg.yml` USRP serial from `35F8ABA` to `8002816`.
+### Config Generation
 
-#### Bug 5: DU template missing sdr_addrs and clock_src
-Added to `du_gnb.conf` template:
-```
-sdr_addrs = "serial=8002816";
-clock_src = "internal";
-```
+Configs are generated from YAML → OAI config via `generate-configs.py`:
+- `source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.conf`
+- `source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.conf`
 
-#### Bug 6: USRP B210 PRB configuration
-Changed from 106 PRB to 51 PRB (10 MHz) because B210 only supports specific sample rates.
+### Deployment Script
 
-### Final Configuration
-- **Band**: n78
-- **PRB**: 51 (10 MHz bandwidth)
-- **SCS**: 30 kHz
-- **DU with USRP B210 serial 8002816**
+```bash
+# Deploy CU to remote (SSH + clone + build)
+~/cu-du/scripts/deploy-cu.sh
 
-### Verification Results
+# Deploy DU to remote
+~/cu-du/scripts/deploy-du.sh
 
-**CU Log:**
-```
-[NR_RRC] Accepting DU 3584 (gNB-CU-FIRECELL), sending F1 Setup Response
-cell PLMN 001.01 Cell ID 12345678 is in service
+# Check health
+~/cu-du/scripts/check-health.sh
 ```
 
-**DU Log:**
-```
-[NR_MAC] Frame.Slot 0.0
-[F1AP] DU_send_F1_SETUP_REQUEST
-[MAC] received F1 Setup Response from CU gNB-CU-FIRECELL
-```
+---
 
-### Status: F1 Interface Operational
+## Status: Ready for Push to GitHub
 
-Both CU and DU are running and F1 Setup succeeded.
-
-### Commits Pushed
-- `4a5b3f6` - Fix PLMN values in YAML
-- `fa2d7a5` - Fix CU's Active_gNBs replacement
-- `86b5d31` - Fix USRP serial: 8002816
+All fixes complete. Repo is self-contained and reproducible. Push to GitHub and update JOURNAL.

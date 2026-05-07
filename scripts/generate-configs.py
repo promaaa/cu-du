@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """Generate gnb-cu.conf and gnb-du.conf by modifying OAI reference configs."""
 
-import sys
 import os
+import sys
 import shutil
 import re
 from ruamel.yaml import YAML
 
-MONOLITHIC_OAI = '/home/serber/monolithic/openairinterface5g'
-REF_CU = os.path.join(MONOLITHIC_OAI, 'targets/PROJECTS/GENERIC-NR-5GC/CONF/cu_gnb.conf')
-REF_DU = os.path.join(MONOLITHIC_OAI, 'targets/PROJECTS/GENERIC-NR-5GC/CONF/du_gnb.conf')
-OUT_CU = os.path.join(MONOLITHIC_OAI, 'targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.conf')
-OUT_DU = os.path.join(MONOLITHIC_OAI, 'targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.conf')
-CONF_DIR = '/home/serber/cu-du/conf'
-SIB8_SRC = os.path.join(MONOLITHIC_OAI, 'sib8.conf')
-SIB8_DST = os.path.join(MONOLITHIC_OAI, 'sib8.conf')
+REPO_BASE = os.environ.get('HOME', os.path.expanduser('~')) + '/cu-du'
+REF_CU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/cu_gnb.conf')
+REF_DU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/du_gnb.conf')
+OUT_CU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.conf')
+OUT_DU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.conf')
+CONF_DIR = os.path.join(REPO_BASE, 'conf')
+SIB8_SRC = os.path.join(REPO_BASE, 'sib8.conf')
+SIB8_DST = os.path.join(REPO_BASE, 'source/openairinterface5g/sib8.conf')
 
 yaml_inst = YAML()
 
@@ -141,7 +141,13 @@ def apply_du_config(text, cfg):
     n, text = replace_key_line(text, 'local_n_portd', '2153'); total += n
     n, text = replace_key_line(text, 'remote_n_portd', '2152'); total += n
 
+    n, text = replace_key_line(text, 'dl_carrierBandwidth', '51'); total += n
+    n, text = replace_key_line(text, 'ul_carrierBandwidth', '51'); total += n
+    n, text = replace_key_inline(text, 'initialDLBWPlocationAndBandwidth', '13053'); total += n
+    n, text = replace_key_inline(text, 'initialULBWPlocationAndBandwidth', '13053'); total += n
+
     n, text = replace_key_line(text, 'sdr_addrs', f'"serial={usrp["serial"]}"'); total += n
+    n, text = replace_key_line(text, 'clock_src', f'"{usrp["clock_src"]}"'); total += n
     n, text = replace_key_line(text, 'max_rxgain', str(usrp['max_rxgain'])); total += n
     n, text = replace_key_line(text, 'att_tx', str(usrp['att_tx'])); total += n
     n, text = replace_key_line(text, 'att_rx', str(usrp['att_rx'])); total += n

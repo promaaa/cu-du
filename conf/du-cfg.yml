@@ -18,6 +18,7 @@ usrp:
   type: b200
   serial: 8002816
   band: 78
+  clock_src: internal
   max_pdschReferenceSignalPower: -27
   max_rxgain: 114
   att_tx: 0

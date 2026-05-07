@@ -1,0 +1,32 @@
+# OAI build artifacts
+*.o
+*.so
+*.a
+cmake_targets/
+build_log.txt
+
+# Downloaded sources (re-cloned by build.sh)
+source/openairinterface5g/openair1/
+source/openairinterface5g/openair2/
+source/openairinterface5g/openair3/
+source/openairinterface5g/common/
+source/openairinterface5g/radio/
+source/openairinterface5g/executables/
+source/openairinterface5g/cmake_targets/
+source/openairinterface5g/maketags/
+source/openairinterface5g/tests/
+source/openairinterface5g/tools/
+source/openairinterface5g/nfapi/
+source/openairinterface5g/charts/
+source/openairinterface5g/ci-scripts/
+source/openairinterface5g/openshift/
+source/openairinterface5g/pre-commit-clang/
+
+# OAI-CN5G (docker compose pulled at runtime)
+source/oai-cn5g/
+
+# UHD build
+uhd/
+
+# Logs
+*.log
