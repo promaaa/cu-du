@@ -1,8 +1,8 @@
 host: serber-minipc
 role: du
 plmn:
-  mcc: 1
-  mnc: 1
+  mcc: "001"
+  mnc: "01"
   mnc_length: 2
 cu:
   f1c_ip: 10.76.170.100
@@ -12,7 +12,7 @@ cu:
   remote_f1c_port: 2152
   gnb_id: 0xe00
   gnb_du_id: 0xe00
-  gnb_name: gNB-DU-MINIPC
+  gnb_name: gNB-CU-FIRECELL
   tac: 1
 usrp:
   type: b200
