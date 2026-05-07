@@ -11,11 +11,10 @@
 
 ### Root Cause Analysis
 
-The remote repository (origin/main) has a more sophisticated template-based `generate-configs.py` that:
-1. Uses OAI reference configs (`cu_gnb.conf`, `du_gnb.conf`) as templates
-2. Uses `replace_plmn_list()` to modify PLMN values in-place
+**Three bugs found and fixed:**
 
-**Problem 1:** The remote's `du-cfg.yml` and `cu-cfg.yml` had:
+#### Bug 1: PLMN values as integers instead of strings with leading zeros
+The remote's `cu-cfg.yml` and `du-cfg.yml` had:
 ```yaml
 plmn:
   mcc: 1    # Integer, not string
@@ -24,56 +23,47 @@ plmn:
 
 When `replace_plmn_list()` does `f'mcc = {mcc}'` with integer `1`, it outputs `mcc = 1` instead of `mcc = 001` (3-digit MCC format expected by OAI).
 
-**Problem 2:** DU's `gnb_name` was `gNB-DU-MINIPC` instead of `gNB-CU-FIRECELL`. For F1 Setup to succeed, DU's `gNB_Name` must match CU's `Active_gNBs`.
-
-### Fix Applied
-
-#### 1. Fixed cu-cfg.yml - PLMN values as strings with leading zeros
+**Fix:** Changed to quoted strings with leading zeros:
 ```yaml
 plmn:
   mcc: "001"   # String with leading zeros
   mnc: "01"    # String with leading zeros
-  mnc_length: 2
 ```
 
-#### 2. Fixed du-cfg.yml - PLMN values as strings with leading zeros + correct gNB name
-```yaml
-plmn:
-  mcc: "001"
-  mnc: "01"
-  mnc_length: 2
-cu:
-  ...
-  gnb_name: gNB-CU-FIRECELL   # Changed from gNB-DU-MINIPC
-```
+#### Bug 2: DU's gNB_Name mismatch
+DU's `gnb_name` was `gNB-DU-MINIPC` instead of `gNB-CU-FIRECELL`. For F1 Setup to succeed, DU's `gNB_Name` must match CU's `Active_gNBs`.
 
-### How the Template-Based Replacement Works
+**Fix:** Changed `du-cfg.yml` gnb_name to `gNB-CU-FIRECELL`.
 
-The remote's `generate-configs.py` uses `replace_plmn_list()`:
+#### Bug 3: CU's Active_gNBs not being replaced
+The `apply_cu_config()` function was missing the `Active_gNBs` replacement, leaving it as template value `gNB-Eurecom-CU` while DU was using `gNB-CU-FIRECELL`.
+
+**Fix:** Added `Active_gNBs` replacement in `apply_cu_config()`:
 ```python
-def replace_plmn_list(text, mcc, mnc, mnc_length):
-    def do_replacements(inner):
-        inner = re.sub(r'mcc\s*=\s*\d+', f'mcc = {mcc}', inner)
-        inner = re.sub(r'mnc\s*=\s*\d+', f'mnc = {mnc}', inner)
-        inner = re.sub(r'mnc_length\s*=\s*\d+', f'mnc_length = {mnc_length}', inner)
-        return inner
+n, text = replace_key_line(text, 'Active_gNBs', f'( "{cu["gnb_name"]}")'); total += n
 ```
 
-With YAML values as strings `"001"` and `"01"`, the output becomes:
-- `mcc = 001` (no quotes, 3 digits)
-- `mnc = 01` (no quotes, 2 digits)
+### Verification
 
-Which matches OAI's expected format in the reference configs.
+Both configs now show consistent values:
+```
+# CU config
+Active_gNBs = ( "gNB-CU-FIRECELL");
+gNB_name  =  "gNB-CU-FIRECELL";
+plmn_list = ({ mcc = 001; mnc = 01; mnc_length = 2; snssaiList = ({ sst = 1 }) });
 
-### Testing Steps
-1. Sync fixed configs to remote servers
-2. Delete `__pycache__` on remotes
-3. Run `generate-configs.sh cu` and `generate-configs.sh du`
-4. Check generated configs for correct PLMN format
-5. Restart CU and DU binaries
-6. Verify F1 Setup succeeds
+# DU config
+Active_gNBs = ( "gNB-CU-FIRECELL");
+gNB_name  =  "gNB-CU-FIRECELL";
+plmn_list = ({ mcc = 001; mnc = 01; mnc_length = 2; snssaiList = ({ sst = 1 }) });
+```
 
-### Commit History
-- `6d911a3` - Fix plmn_list replacement: check pos+1 for '(', ')'; rename inner func to do_replacements
-- `6895622` - Fix plmn_list replacement: use manual brace-matching instead of regex
-- `63c4037` - Rewrite generate-configs.py for proper F1 split (template-based approach)
+### Next Steps
+1. Sync to serber-minipc when it becomes available
+2. Restart CU binary on serber-firecell
+3. Restart DU binary on serber-minipc
+4. Verify F1 Setup succeeds
+
+### Commits
+- `4a5b3f6` - Fix PLMN values in YAML: use string format with leading zeros (001/01)
+- `63878d2` - Fix CU's Active_gNBs replacement in apply_cu_config()
