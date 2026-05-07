@@ -2,16 +2,12 @@
 
 ## Date: 2026-05-07
 
-## Issue: F1 Setup PLMN Mismatch
+## Issue: F1 Setup PLMN Mismatch - RESOLVED
 
-### Symptom
-- CU logs: `PLMN mismatch: CU 000.0, DU 00101`
-- DU sends F1_SETUP_REQUEST with PLMN read as 00101 instead of 001.001
-- F1-C SCTP connection establishes successfully, but F1 Setup fails
+### Summary
+Successfully fixed F1 PLMN mismatch and got CU/DU running with F1 interface established.
 
-### Root Cause Analysis
-
-**Three bugs found and fixed:**
+### Bugs Fixed
 
 #### Bug 1: PLMN values as integers instead of strings with leading zeros
 Changed `cu-cfg.yml` and `du-cfg.yml` from:
@@ -36,43 +32,45 @@ Added missing `Active_gNBs` replacement in `apply_cu_config()`:
 n, text = replace_key_line(text, 'Active_gNBs', f'( "{cu["gnb_name"]}")'); total += n
 ```
 
-### Verification Results (2026-05-07)
+#### Bug 4: USRP serial incorrect
+Changed `du-cfg.yml` USRP serial from `35F8ABA` to `8002816`.
 
-**F1 Setup SUCCEEDED!**
+#### Bug 5: DU template missing sdr_addrs and clock_src
+Added to `du_gnb.conf` template:
 ```
-CU Log:  PLMN: MCC=001, MNC=01 | cell PLMN 001.01 is in service
-DU Log:  gNB_DU_name gNB-CU-FIRECELL | received F1 Setup Response
-```
-
-### USRP B210 Configuration
-
-**Issue:** USRP serial was incorrect (`35F8ABA` instead of `8002816`)
-
-**Fix:** Updated `du-cfg.yml`:
-```yaml
-usrp:
-  serial: 8002816  # Correct serial from uhd_find_devices
+sdr_addrs = "serial=8002816";
+clock_src = "internal";
 ```
 
-**Verification:**
+#### Bug 6: USRP B210 PRB configuration
+Changed from 106 PRB to 51 PRB (10 MHz) because B210 only supports specific sample rates.
+
+### Final Configuration
+- **Band**: n78
+- **PRB**: 51 (10 MHz bandwidth)
+- **SCS**: 30 kHz
+- **DU with USRP B210 serial 8002816**
+
+### Verification Results
+
+**CU Log:**
 ```
-$ uhd_find_devices
--- UHD Device 0
-    serial: 8002816
-    name: Zhixun-wireless
-    product: B210
-    type: b200
+[NR_RRC] Accepting DU 3584 (gNB-CU-FIRECELL), sending F1 Setup Response
+cell PLMN 001.01 Cell ID 12345678 is in service
 ```
 
-**Current Status:**
-- USRP B210 found with correct serial
-- F1 Setup succeeds
-- USRP sampling rate error persists: `unknown sampling rate 61440000.000000`
+**DU Log:**
+```
+[NR_MAC] Frame.Slot 0.0
+[F1AP] DU_send_F1_SETUP_REQUEST
+[MAC] received F1 Setup Response from CU gNB-CU-FIRECELL
+```
 
-The USRP B210 sampling rate issue is a separate RF configuration problem.
+### Status: F1 Interface Operational
+
+Both CU and DU are running and F1 Setup succeeded.
 
 ### Commits Pushed
-- `4a5b3f6` - Fix PLMN values in YAML: use string format with leading zeros
+- `4a5b3f6` - Fix PLMN values in YAML
 - `fa2d7a5` - Fix CU's Active_gNBs replacement
-- `ca176ad` - Update JOURNAL: F1 Setup succeeded
-- `86b5d31` - Fix USRP serial: 35F8ABA -> 8002816
+- `86b5d31` - Fix USRP serial: 8002816
