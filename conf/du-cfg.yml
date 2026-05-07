@@ -16,7 +16,7 @@ cu:
   tac: 1
 usrp:
   type: b200
-  serial: 35F8ABA
+  serial: 8002816
   band: 78
   max_pdschReferenceSignalPower: -27
   max_rxgain: 114
