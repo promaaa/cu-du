@@ -74,3 +74,48 @@ Both CU and DU are running and F1 Setup succeeded.
 - `4a5b3f6` - Fix PLMN values in YAML
 - `fa2d7a5` - Fix CU's Active_gNBs replacement
 - `86b5d31` - Fix USRP serial: 8002816
+- `9dd3860` - Add clock_src and prb to DU config for B210 compatibility
+
+---
+
+## Date: 2026-05-07 (afternoon)
+
+## Issue: Sync repo with working remote config - COMPLETED
+
+### Summary
+Repo now accurately reflects the working remote state after manual modifications on DU.
+
+### What was synced to repo:
+- `conf/du-cfg.yml`: Added `clock_src: "internal"` and `prb: 51` under `usrp:`
+- `scripts/generate-configs.py`: Added `clock_src` replacement in `apply_du_config()`
+- `README.md`: Updated USRP serial from `35F8ABA` to `8002816`, BW from 106 PRB to 51 PRB
+
+### Current Working Configuration
+
+| Parameter | Value |
+|---|---|
+| PLMN | MCC 001, MNC 01 |
+| Band | n78 (3300–3800 MHz) |
+| BW | 51 PRB @ 30 kHz SCS (10 MHz, B210-compatible) |
+| USRP | B210 serial `8002816` |
+| clock_src | internal |
+| CU gNB Name | gNB-CU-FIRECELL |
+| DU gNB Name | gNB-CU-FIRECELL (both must match for F1) |
+
+### Hosts
+| Host | IP | Role |
+|---|---|---|
+| serber-firecell | 10.76.170.38 | CU + Core Network |
+| serber-minipc | 10.76.170.100 | DU + USRP B210 |
+
+### Deployment Workflow
+1. Develop locally at `/Users/promaa/Documents/cu-du/`
+2. Push to GitHub: `git push origin main`
+3. Rsync to remotes: `rsync -avz --exclude='.git' -e "sshpass -e ssh" ./ serber@HOST:cu-du/`
+4. On remotes: `cd ~/cu-du && python3 scripts/generate-configs.py cu|du`
+5. Restart binaries
+
+### Next Steps
+- [ ] Verify PWS/SIB8 transmission works end-to-end
+- [ ] Test 5G registration with UE
+- [ ] Document any issues in JOURNAL
