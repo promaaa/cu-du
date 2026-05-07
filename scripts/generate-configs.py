@@ -96,6 +96,7 @@ def apply_cu_config(text, cfg):
     total = 0
 
     n, text = replace_key_line(text, 'gNB_ID', hex(cu['gnb_id'])); total += n
+    n, text = replace_key_line(text, 'Active_gNBs', f'( "{cu["gnb_name"]}")'); total += n
     n, text = replace_key_line(text, 'gNB_name', f'"{cu["gnb_name"]}"'); total += n
 
     n, text = replace_plmn_list(text, plmn['mcc'], plmn['mnc'], plmn['mnc_length']); total += n
