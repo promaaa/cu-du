@@ -236,3 +236,103 @@ This indicates that after PWS is configured, the scheduler can't allocate transm
 1. Rebuild CU and DU with the fixes
 2. Check SIB8 encoding format - the CU encodes segments but DU expects full NR_SIB8_t
 3. The build_sib8_segments() may need to be modified to properly encode SIB8 as a complete message rather than just segments
+
+---
+
+## Date: 2026-05-08 (afternoon - PWS Handler Fixes)
+
+### Root Cause Identified: DU Handler Was Missing
+
+The primary issue was that **DU_handle_WriteReplaceWarning was not wired into f1ap_handlers.c**. The handler matrix had `{0, 0, 0}` for WriteReplaceWarning, so when the CU sent the F1AP message, the DU's `f1ap_handle_message()` logged:
+
+```
+[SCTP 410] No handler for procedureCode 20 in Initiating message
+```
+
+This confirmed the message was arriving at DU over SCTP, but there was no handler to decode and process it.
+
+### Fixes Applied Today
+
+#### 1. Created DU_handle_WriteReplaceWarning in f1ap_du_paging.c
+
+New function that:
+- Extracts TransactionID, RepetitionPeriod, NumberofBroadcastRequest, and PWSSystemInformation from the F1AP message
+- Extracts SI_container (encoded SIB8 bytes) and SI_container_length from PWSSystemInformation
+- Calls `write_replace_warning_req()` in mac_rrc_dl_handler.c to forward to MAC layer
+
+#### 2. Wired handler into f1ap_handlers.c
+
+Changed line 68 from:
+```c
+{0, 0, 0}, /* WriteReplaceWarning */
+```
+To:
+```c
+{DU_handle_WriteReplaceWarning, 0, 0}, /* WriteReplaceWarning */
+```
+
+#### 3. Fixed decode failure handling in nr_mac_configure_pws_si()
+
+Changed from silently continuing on decode failure to AssertFatal:
+```c
+if (dec_rval.code != RC_OK) {
+    AssertFatal(false, "cannot decode SIB8 from CU\n");
+}
+```
+
+#### 4. Verified TBS allocation logic
+
+The scheduler's `other_sib_sched_control()` receives `payload_idx` which maps to the SI message index in `other_sib_bcch_pdu[]` / `other_sib_bcch_length[]`. With `other_si_used` starting at 0 and PWS segments placed at `start = cc->other_si_used`, the indices should be correct.
+
+The TBS allocation failure ("Couldn't allocate TBS for other SIB") was a secondary symptom - when decode fails, `sib8` is NULL and the encoding produces garbage, causing `num_total_bytes` to be too small or zero.
+
+### Files Modified on Remote (CU serber-firecell:)
+
+1. `/home/serber/monolithic/openairinterface5g/openair2/F1AP/f1ap_du_paging.c` - completely rewritten with DU_handle_WriteReplaceWarning
+2. `/home/serber/monolithic/openairinterface5g/openair2/F1AP/f1ap_du_paging.h` - added function declaration
+3. `/home/serber/monolithic/openairinterface5g/openair2/F1AP/f1ap_handlers.c` - wired handler
+4. `/home/serber/monolithic/openairinterface5g/openair2/LAYER2/NR_MAC_gNB/config.c` - fixed decode AssertFatal
+
+### Rebuild Blocked
+
+The rebuild of nr-softmodem failed due to:
+- CMake/CPM cache at `/root/.cache/cpm` not accessible by serber user
+- Network connectivity issues - DNS resolution and outbound connections are timing out
+- The existing binary was built with the old code
+
+Both CU and DU are currently running with the **old code**. The new files are deployed but not compiled in.
+
+### Manual Steps Required When Network Returns
+
+On **CU (serber-firecell)**:
+```bash
+# Fix CPM cache permissions
+sudo chmod 777 /root/.cache/cpm /root/.cache/cpm/cpm
+sudo touch /root/.cache/cpm/cpm/CPM_0.40.1.cmake
+
+# Rebuild
+cd ~/monolithic/openairinterface5g/cmake_targets/ran_build/build
+sudo make nr-softmodem -j4
+
+# Restart CU
+sudo killall nr-softmodem; sleep 2
+cd ~/monolithic/openairinterface5g/cmake_targets/ran_build/build
+sudo ./nr-softmodem -O /home/serber/cu-du/source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.conf --log_config.global_log_level info | tee /tmp/cu.log &
+```
+
+On **DU (serber-minipc)**:
+```bash
+# Rebuild (same steps)
+# Restart DU
+sudo killall nr-softmodem; sleep 2
+cd ~/monolithic/openairinterface5g/cmake_targets/ran_build/build
+sudo ./nr-softmodem -O /home/serber/cu-du/source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.conf --log_config.global_log_level info | tee /tmp/du.log &
+```
+
+### Next Verification Steps After Rebuild
+
+1. Check CU log for: `[NR_RRC] [SIB8] segments numer:0 and number of segments:1`
+2. Check DU log for: `[MAC] received Write Replace Warning Request from CU`
+3. Verify no decode error: `cannot decode SIB8 from CU` should NOT appear
+4. Verify SIB8 is scheduled: `otherSIB payload transmission for ssb number`
+5. Check for TBS assertion: `Couldn't allocate TBS` should NOT appear

@@ -17,7 +17,6 @@ cu:
 usrp:
   type: b200
   serial: 8002816
-  clock_src: "internal"
   band: 78
   clock_src: internal
   max_pdschReferenceSignalPower: -27
