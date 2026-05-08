@@ -202,3 +202,37 @@ sudo killall nr-softmodem; sleep 2
 cd ~/cu-du && python3 scripts/generate-configs.py cu
 cd ~/monolithic/openairinterface5g/cmake_targets/ran_build/build && nohup sudo ./nr-softmodem -O /home/serber/monolithic/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.conf --log_config.global_log_level info > /tmp/cu.log 2>&1 &
 ```
+---
+
+## Date: 2026-05-08 (morning - continued)
+
+## PWS Implementation Session - FIXES APPLIED BUT NETWORK UNREACHABLE
+
+### Issues Fixed (During Session)
+
+#### Issue 1: Forward declaration bug in mac_rrc_dl_f1ap.c (CU)
+Fixed by properly defining `write_replace_warning_req_f1ap()` before `mac_rrc_dl_f1ap_init()`.
+
+#### Issue 2: memcpy without allocation in f1ap_du_paging.c (DU)
+Fixed by adding `malloc()` before memcpy in `DU_handle_WriteReplaceWarningRequest()`.
+
+#### Issue 3: Shallow copy causing double-free
+Fixed by implementing deep copy with proper `malloc()` for each buffer in `write_replace_warning_req_f1ap()`.
+
+### Current Problem
+Network became unreachable during session. Hosts serber-firecell (10.76.170.38) and serber-minipc (10.76.170.100) not responding to ping.
+
+### DU Crash Symptom
+Last known DU crash: `Assertion (success) failed! In other_sib_sched_control() /home/serber/monolithic/openairinterface5g/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_bch.c:720 - Couldn't allocate TBS for other SIB`
+
+This indicates that after PWS is configured, the scheduler can't allocate transmission block size for the SIB.
+
+### Remaining Work
+1. The PWS message flow from CU to DU is working (F1AP messages sent and received)
+2. SIB8 decode fails on DU - "cannot decode SIB8 from CU" in nr_mac_configure_pws_si()
+3. Need to investigate SIB8 encoding format mismatch between CU's build_sib8_segments() and DU's decoder
+
+### When Network Returns
+1. Rebuild CU and DU with the fixes
+2. Check SIB8 encoding format - the CU encodes segments but DU expects full NR_SIB8_t
+3. The build_sib8_segments() may need to be modified to properly encode SIB8 as a complete message rather than just segments
