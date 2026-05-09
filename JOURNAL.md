@@ -335,4 +335,167 @@ sudo ./nr-softmodem -O /home/serber/cu-du/source/openairinterface5g/targets/PROJ
 2. Check DU log for: `[MAC] received Write Replace Warning Request from CU`
 3. Verify no decode error: `cannot decode SIB8 from CU` should NOT appear
 4. Verify SIB8 is scheduled: `otherSIB payload transmission for ssb number`
-5. Check for TBS assertion: `Couldn't allocate TBS` should NOT appear
+---
+
+## Date: 2026-05-08 (evening)
+
+## Status: CU/DU Running with F1 Established
+
+### Current System Status (as of ~23:51)
+- **CU (serber-firecell)**: Running, F1 accepted DU (assoc_id 421), PWS messages being sent
+- **DU (serber-minipc)**: Running, NR_MAC frames active (0.0, 128.0, 256.0...), no crashes
+- **F1 interface**: Established
+- **Cell**: In service, PLMN 001.01, Cell ID 12345678
+
+### Configuration
+- PLMN: MCC 001, MNC 01
+- Band: n78 (3300–3800 MHz)
+- BW: 51 PRB @ 30 kHz SCS (10 MHz, B210-compatible)
+- USRP: B210 serial `8002816`
+- Clock: internal
+
+### Fixed During Session
+1. Duplicate `clock_src` key in `conf/du-cfg.yml` - removed duplicate
+2. `generate-configs.py` was hardcoding 51 PRB regardless of `prb` in du-cfg.yml - fixed to use actual prb value
+3. Initial BWP was incorrectly set to PRB value instead of proper frequency location (13053 for 51 PRB, 28875 for 106 PRB)
+4. 106 PRB causes sampling rate error on B210 (61440000 sps not supported) - using 51 PRB
+
+### Known Issue
+- Previous session saw UE RA attempts (preamble detected), but currently no UE activity
+- Need to verify Nothing Phone is configured with same PLMN (001.01) and SIM settings
+- 106 PRB with monolithic config may have different sampling rate handling
+
+---
+
+## Date: 2026-05-08 (late night)
+
+## Status: CU/DU Running but Nothing Phone Not Connecting
+
+### System Status
+- **CU (serber-firecell)**: Running, F1 established (assoc_id 429), cell in service
+- **DU (serber-minipc)**: Running, NR_MAC frames active
+- **Cell**: PLMN 001.01, 51 PRB, band n78, frequency 3619.2 MHz
+
+### Changes Made Tonight
+1. Fixed duplicate `clock_src` in du-cfg.yml
+2. Fixed `generate-configs.py` to use actual `prb` value instead of hardcoding 51
+3. Fixed initial BWP calculation (13053 for 51 PRB, 28875 for 106 PRB)
+4. Changed att_tx/att_rx from 0 to 12 (matching monolithic)
+5. 106 PRB causes B210 sampling rate error (61440000 not supported) - using 51 PRB
+
+### Current Problem
+- Nothing Phone in airplane mode shows no network when toggling off
+- No PWS messages received on phone
+- Monolithic on serber-firecell also shows sampling rate error but phone connects
+- **Need SIM parameters from user** to verify/insert into database
+
+### SIM Database Info
+Current entries in `oai_db.AuthenticationSubscription`:
+```
+001010000000001 - 004 (default OAI test SIMs)
+001010000059449 (existing custom entry)
+```
+
+### What We Need From User
+SIM card parameters to add to database:
+- `ueid` / `supi` - usually format: `00101{MCC}{MNC}{MSIN}`
+- `encPermanentKey` - OPc/Milenage key from SIM
+- `protectionParameterId` - usually same as encPermanentKey
+- `encOpcKey` - OPc derived from SIM
+
+### Next Steps
+1. Get SIM parameters from user (Nothing Phone SIM)
+2. Insert into database: `docker exec mysql mysql -u test -ptest oai_db -e "INSERT INTO..."`
+3. Ensure containers are restarted after DB update
+4. Test UE connection
+
+---
+
+## Date: 2026-05-09 (early morning)
+
+## Status: Still Investigating UE Connection Issue
+
+### System Status
+- CU (serber-firecell): Running, F1 established (assoc_id 432)
+- DU (serber-minipc): Running, NR_MAC frames active, att_tx/att_rx=12
+- Cell: PLMN 001.01, 51 PRB, band n78, SSB frequency 3619.2 MHz
+- PWS messages being sent from CU to DU (confirmed in logs)
+
+### Confirmed Working
+- F1 interface between CU and DU: Working
+- Cell broadcasts: SSB at 3619.2 MHz, periodicity 20ms (ssb_periodicityServingCell=2)
+- SIB1 configuration: offsetToPointA 86, DL frequency 3609.3 MHz
+- USRP B210 (serial 8002816): Initialized and running
+-.att_tx=12, att_rx=12 (matching monolithic)
+- NR_MAC frames: Active (0.0, 128.0, 256.0...)
+- PWS: CU sending WRITE_REPLACE_WARNING to DU
+
+### Not Working
+- Nothing Phone not detecting the cell (works with monolithic)
+- No PRACH detected from UE in DU logs
+
+### Key Differences from Monolithic (51 PRB vs 106 PRB)
+1. Frequency: 3609.3 MHz vs 3619.2 MHz
+2. DL bandwidth: 51 PRB vs 106 PRB
+3. B210 sampling rate: 30.72 MSps vs 61.44 MSps (not supported by B210)
+
+### Hypotheses Being Tested
+1. Frequency offset issue (SSB at 3609.3 vs 3619.2 MHz)
+2. B210 not properly transmitting at 3609.3 MHz with 51 PRB
+3. Some config parameter difference causing SSB not to be detected
+
+### Last Actions
+- Restarted CU and DU after modifications
+- Verified att_tx=12, att_rx=12 are applied
+- Confirmed SSB frequency is 3619.2 MHz in DU log
+- **TESTED 106 PRB**: DU crashes with "Error: unknown sampling rate 61440000.000000" - B210 cannot support 61.44 MSps, must use 51 PRB
+
+---
+
+## Date: 2026-05-09 (early morning) - Key Finding
+
+## B210 Sampling Rate Limitation Confirmed
+
+### Finding
+The USRP B210 cannot support 106 PRB (61.44 MSps) - it crashes with:
+```
+[HW]     Error: unknown sampling rate 61440000.000000
+```
+
+This was confirmed on serber-minipc (DU) which has B210 serial 8002816.
+
+### Implication
+- **Monolithic on serber-firecell** works with 106 PRB because it has B210 serial **35F8ABA** - different hardware that may handle the sampling rate differently
+- **Split DU on serber-minipc** must use **51 PRB** (30.72 MSps) for B210 compatibility
+- 51 PRB = DL frequency 3609.3 MHz vs 3619.2 MHz with 106 PRB
+
+### Current State
+- DU crashed when trying 106 PRB, reverted to 51 PRB
+- CU is running split config (serber-firecell)
+- DU needs to be restarted with 51 PRB
+
+### Notes
+- serber-firecell USRP: serial 35F8ABA (monolithic works there)
+- serber-minipc USRP: serial 8002816 (B210, must use 51 PRB)
+
+### What's Different Between Monolithic and Split DU (51 PRB)
+- **DU (split mode)**: RA preambles detected (multiple UEs), but Msg2 fails with "cannot find free CCE for Msg2"
+- **CCE allocation**: L1: 0, L2: 2, L4: 0, L8: 0, L16: 0 - only 2 CCEs at aggregation level 2
+- Root cause likely: CORESET/SearchSpace configuration issue in split mode
+
+### What's Working
+- DU detects PRACH preambles from multiple UEs (preamble 27, etc.)
+- RA-RNTI and TC-RNTI are assigned
+- Msg3 is scheduled for some UEs (614b, 246c)
+
+### What's Broken
+- Msg2 (RMSI, RA Response) cannot be scheduled due to CCE shortage
+- 3rd UE (0e02) fails with "cannot find free CCE for Msg2"
+
+### Root Cause Hypothesis
+The CORESET or SearchSpace configuration in split mode DU is limiting CCE availability. Need to compare monolithic's CORESET configuration vs split DU's configuration.
+
+### Next Steps
+1. Check CORESET configuration in monolithic vs split DU
+2. Compare `initialDLBWPcontrolResourceSetZero` and `initialDLBWPsearchSpaceZero` values
+3. Verify if PDCCH candidate availability is the issue

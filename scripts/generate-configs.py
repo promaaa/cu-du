@@ -141,10 +141,12 @@ def apply_du_config(text, cfg):
     n, text = replace_key_line(text, 'local_n_portd', '2153'); total += n
     n, text = replace_key_line(text, 'remote_n_portd', '2152'); total += n
 
-    n, text = replace_key_line(text, 'dl_carrierBandwidth', '51'); total += n
-    n, text = replace_key_line(text, 'ul_carrierBandwidth', '51'); total += n
-    n, text = replace_key_inline(text, 'initialDLBWPlocationAndBandwidth', '13053'); total += n
-    n, text = replace_key_inline(text, 'initialULBWPlocationAndBandwidth', '13053'); total += n
+    prb = usrp.get('prb', 51)
+    initial_bwp = {51: 13053, 106: 28875}.get(prb, 13053)
+    n, text = replace_key_line(text, 'dl_carrierBandwidth', str(prb)); total += n
+    n, text = replace_key_line(text, 'ul_carrierBandwidth', str(prb)); total += n
+    n, text = replace_key_inline(text, 'initialDLBWPlocationAndBandwidth', str(initial_bwp)); total += n
+    n, text = replace_key_inline(text, 'initialULBWPlocationAndBandwidth', str(initial_bwp)); total += n
 
     n, text = replace_key_line(text, 'sdr_addrs', f'"serial={usrp["serial"]}"'); total += n
     n, text = replace_key_line(text, 'clock_src', f'"{usrp["clock_src"]}"'); total += n
