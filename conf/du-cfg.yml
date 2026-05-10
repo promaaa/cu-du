@@ -27,4 +27,4 @@ usrp:
   searchSpaceZero: 0
   controlResourceSetZero: 11
   ssb_perRACH_OccasionAndCB_PreamblesPerSSB: 4
-  absoluteFrequencySSB: 636672
+  absoluteFrequencySSB: 641280

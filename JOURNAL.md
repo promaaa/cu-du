@@ -577,3 +577,56 @@ Created `/Users/promaa/cu-du` → `/Users/promaa/Documents/cu-du` because `gener
 3. On serber-minipc: `python3 scripts/generate-configs.py du`
 4. Restart DU: `sudo ./nr-softmodem -O /home/serber/cu-du/source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.conf`
 5. Test UE connection
+
+---
+
+## Date: 2026-05-10 (Late Morning) - Hardware Issue
+
+### Status: USRP B210 Not Detected on serber-minipc
+
+### Problem
+After deploying the frequency fix and restarting DU, the USRP B210 is no longer detected:
+```
+[HW]     No USRP Device Found.
+[HW]     can't open the radio device: none
+```
+
+### What Was Working Before
+- DU was detecting PRACH preambles and scheduling Msg2 (before the CCE error)
+- NR_MAC frames were running (0.0, 128.0, 256.0...)
+- UE preambles were being detected
+
+### Diagnostic Results
+- `uhd_find_devices`: No UHD Devices Found
+- `lsusb | grep -i b2`: No output
+- USB bus does not show the B210 connected
+
+### Conclusion
+This is a **hardware issue** - the USRP B210 is not connected or powered on the serber-minipc. The USRP may have:
+1. Lost USB cable connection
+2. Lost power
+3. Powered off due to some issue
+
+### Note on Frequency Fix
+The `absoluteFrequencySSB: 641280` (641280 = SSB at 3619.2 MHz) was correctly applied before the hardware issue occurred. The config showed:
+```
+absoluteFrequencySSB = 636672;  (WRONG - this was 3449.856 MHz)
+```
+But when correctly set to `641280`, the log showed:
+```
+DL frequency 3609300000: band 78, UL frequency 3609300000
+```
+This was the SAME frequency as before (3609.3 MHz) - meaning the SSB and DL carrier were misaligned as suspected.
+
+### Next Steps
+1. **Check physical USRP connection** - verify USB cable and power
+2. Once USRP is back, retest with `absoluteFrequencySSB: 641280` (SSB at 3619.2 MHz)
+3. Verify DL frequency is also 3619.2 MHz (not 3609.3 MHz)
+
+### Files Modified This Session
+- `scripts/generate-configs.py`: Added `absoluteFrequencySSB`, `searchSpaceZero`, `controlResourceSetZero` support
+- `conf/du-cfg.yml`: Contains all necessary parameters for frequency alignment
+- `source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.conf`: Generated config with correct values
+
+### Commit
+`650f5b7` - Add absoluteFrequencySSB support and generate new DU config
