@@ -712,27 +712,22 @@ The same ARFCN values produce different DL frequencies, which suggests the OAI c
 
 ### Current State
 - DU is running (NR_MAC frames active) ✅
-- F1 interface established ✅
+- F1 interface established ✅ (assoc_id 457)
 - Cell in service (PLMN 001.01) ✅
 - SSB: 3619.2 MHz ✅
-- DL carrier: 3609.3 MHz ❌ (10 MHz mismatch)
-- **UE attempting RA: YES (RAPROC detected)**
-- 2 out of 3 UEs successfully get Msg2, 3rd fails with CCE shortage
+- DL carrier: 3609.3 MHz (10 MHz mismatch)
+- CPU: performance mode ✅
+- **No UE attempts currently** - system idle waiting for UE
 
-### RA Results
-```
-[NR_PHY] [RAPROC] preamble 12, energy 55.7 dB
-[NR_MAC] UE 9369: Msg2 scheduled successfully
-[NR_MAC] UE 0aaf: Msg2 scheduled successfully
-[NR_MAC] UE 63c2: cannot find free CCE for Msg2!
-```
+### History
+- Before CPU fix: LLLL frames (underruns), RA worked when cpupower was set to performance
+- After CPU fix: UE connected (RAPROC detected, Msg2 scheduled for 2 UEs, 3rd failed CCE)
+- After DU restart: No RAPROC events yet - UE may need time to find cell
 
-The UE IS connecting and getting through to Msg2/Msg3 stage despite the frequency mismatch! The 3rd UE fails due to CCE shortage (L2: 2 CCE candidates, 2 already used).
-
-### Conclusion
-The frequency mismatch (3609.3 MHz DL vs 3619.2 MHz SSB) does NOT completely block UE connection. The UE can still detect the SSB and initiate random access. The main issue now is the CCE shortage preventing multiple UEs.
+### Observation
+The DU was restarted with the original config (searchSpaceZero=0, controlResourceSetZero=11). The system is running normally (frames 0.0, 128.0...) but no UE is attempting Random Access yet.
 
 ### Next Steps
-1. The frequency issue may be acceptable for basic connectivity
-2. Focus on the CCE shortage issue - only 2 CCEs at aggregation level 2
-3. Try increasing CCE candidates by adjusting CORESET/SearchSpace configuration
+1. Wait for Nothing Phone to attempt RA
+2. Check if LLLL frames increase (indicates CPU can't keep up)
+3. The CCE shortage issue (2 candidates at L2) may still affect multiple UEs
