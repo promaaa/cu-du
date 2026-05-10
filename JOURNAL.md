@@ -710,26 +710,29 @@ The same ARFCN values produce different DL frequencies, which suggests the OAI c
 - **serber-minipc DU**: `c2f67c509313d2ecddc88533bc2b86a9`
 - **serber-firecell monolithic**: Unknown (need to compare)
 
-### Current Config Running
-```yaml
-absoluteFrequencySSB: 641280
-dl_absoluteFrequencyPointA: 640008
-dl_offsetToCarrier: 0
-prb: 51
-searchSpaceZero: 0
-controlResourceSetZero: 11
-```
-
 ### Current State
 - DU is running (NR_MAC frames active) ✅
 - F1 interface established ✅
 - Cell in service (PLMN 001.01) ✅
 - SSB: 3619.2 MHz ✅
 - DL carrier: 3609.3 MHz ❌ (10 MHz mismatch)
-- No UE connection attempts (0 RAPROC in logs)
+- **UE attempting RA: YES (RAPROC detected)**
+- 2 out of 3 UEs successfully get Msg2, 3rd fails with CCE shortage
 
-### Observation
-The DU binary on serber-minipc was compiled at a different time than the monolithic on serber-firecell. They could have different compilation flags or even different code versions.
+### RA Results
+```
+[NR_PHY] [RAPROC] preamble 12, energy 55.7 dB
+[NR_MAC] UE 9369: Msg2 scheduled successfully
+[NR_MAC] UE 0aaf: Msg2 scheduled successfully
+[NR_MAC] UE 63c2: cannot find free CCE for Msg2!
+```
 
-### Recommendation
-Test with Nothing Phone anyway - if the frequency mismatch is the only issue, the UE might still attempt connection and we could observe whether PRACH detection works. The previous session DID see RAPROC events (UE preambles detected) before the frequency fix was applied.
+The UE IS connecting and getting through to Msg2/Msg3 stage despite the frequency mismatch! The 3rd UE fails due to CCE shortage (L2: 2 CCE candidates, 2 already used).
+
+### Conclusion
+The frequency mismatch (3609.3 MHz DL vs 3619.2 MHz SSB) does NOT completely block UE connection. The UE can still detect the SSB and initiate random access. The main issue now is the CCE shortage preventing multiple UEs.
+
+### Next Steps
+1. The frequency issue may be acceptable for basic connectivity
+2. Focus on the CCE shortage issue - only 2 CCEs at aggregation level 2
+3. Try increasing CCE candidates by adjusting CORESET/SearchSpace configuration
