@@ -142,7 +142,7 @@ def apply_du_config(text, cfg):
     n, text = replace_key_line(text, 'remote_n_portd', '2152'); total += n
 
     prb = usrp.get('prb', 51)
-    initial_bwp = {51: 13053, 106: 28875}.get(prb, 13053)
+    initial_bwp = {24: 6325, 51: 13053, 106: 28875}.get(prb, 13053)
     n, text = replace_key_line(text, 'dl_carrierBandwidth', str(prb)); total += n
     n, text = replace_key_line(text, 'ul_carrierBandwidth', str(prb)); total += n
     n, text = replace_key_inline(text, 'initialDLBWPlocationAndBandwidth', str(initial_bwp)); total += n
@@ -156,6 +156,18 @@ def apply_du_config(text, cfg):
 
     if 'max_pdschReferenceSignalPower' in usrp:
         n, text = replace_key_line(text, 'max_pdschReferenceSignalPower', str(usrp['max_pdschReferenceSignalPower'])); total += n
+
+    if 'ssb_perRACH_OccasionAndCB_PreamblesPerSSB' in usrp:
+        n, text = replace_key_line(text, 'ssb_perRACH_OccasionAndCB_PreamblesPerSSB', str(usrp['ssb_perRACH_OccasionAndCB_PreamblesPerSSB'])); total += n
+
+    if 'searchSpaceZero' in usrp:
+        n, text = replace_key_line(text, 'initialDLBWPsearchSpaceZero', str(usrp['searchSpaceZero'])); total += n
+
+    if 'controlResourceSetZero' in usrp:
+        n, text = replace_key_line(text, 'initialDLBWPcontrolResourceSetZero', str(usrp['controlResourceSetZero'])); total += n
+
+    if 'absoluteFrequencySSB' in usrp:
+        n, text = replace_key_line(text, 'absoluteFrequencySSB', str(usrp['absoluteFrequencySSB'])); total += n
 
     n, text = replace_key_inline(text, 'sst', '1'); total += n
 

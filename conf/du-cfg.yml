@@ -24,3 +24,7 @@ usrp:
   att_tx: 12
   att_rx: 12
   prb: 51
+  searchSpaceZero: 0
+  controlResourceSetZero: 11
+  ssb_perRACH_OccasionAndCB_PreamblesPerSSB: 4
+  absoluteFrequencySSB: 636672

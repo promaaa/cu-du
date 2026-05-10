@@ -499,3 +499,81 @@ The CORESET or SearchSpace configuration in split mode DU is limiting CCE availa
 1. Check CORESET configuration in monolithic vs split DU
 2. Compare `initialDLBWPcontrolResourceSetZero` and `initialDLBWPsearchSpaceZero` values
 3. Verify if PDCCH candidate availability is the issue
+
+---
+
+## Date: 2026-05-10 (Morning) - KEY FINDINGS
+
+### Pivot: Moving from PWS to Basic 5G Connectivity
+We are pivoting from implementing the Public Warning System (PWS) over F1 to **demonstrating that the CU/DU split 5G deployment can successfully emit 5G signals and allow a UE (Nothing Phone) to connect**. The goal is NOT high bandwidth or performance - it's proving the split architecture is functional.
+
+### Issue: DL Frequency Mismatch
+**Discovery**: DU (split mode) uses different DL frequency than working monolithic config.
+
+| Config | absoluteFrequencySSB | DL Frequency |
+|--------|----------------------|---------------|
+| Working monolithic (51PRB) | 636672 (3449.856 MHz) | 3619200 (3619.2 MHz) |
+| Split DU (current) | 641280 (3619.2 MHz) | **3609300** (3609.3 MHz) |
+
+**Impact**: UE sees SSB at 3619.2 MHz but DL carrier at 3609.3 MHz - 9.9 MHz offset causes connection failure!
+
+### CCE Configuration (CORRECTED)
+- `controlResourceSetZero = 11` (matches working 51PRB config)
+- `searchSpaceZero = 0`
+- `ssb_perRACH_OccasionAndCB_PreamblesPerSSB = 4` (reduced from 14)
+- CCE candidates: L1: 0, L2: 2, L4: 0, L8: 0, L16: 0 (same as monolithic - not the root cause)
+
+### Root Cause Confirmed
+The DL frequency mismatch (NOT CCE shortage) is why UE cannot connect. The B210 on serber-minipc supports 51 PRB but the frequency plan is wrong.
+
+### Fix Applied
+Changed du-cfg.yml:
+- Added `controlResourceSetZero: 11` (was using 12)
+- Added `ssb_perRACH_OccasionAndCB_PreamblesPerSSB: 4` (reduced from 14)
+- Still using `prb: 51` (B210 limitation)
+- Still using `absoluteFrequencySSB: 641280` (WRONG - needs to be 636672!)
+
+### Files Modified
+1. `conf/du-cfg.yml`: Added controlResourceSetZero, ssb_perRACH settings
+2. `scripts/generate-configs.py`: Added support for searchSpaceZero, controlResourceSetZero, ssb_perRACH parameters
+
+### Current Status
+- DU running with F1 interface established ✅
+- CCE candidates: L1: 0, L2: 2, L4: 0, L8: 0, L16: 0
+- **BROKEN**: DL frequency 3609.3 MHz instead of 3619.2 MHz ❌
+
+### Next Step
+Fix absoluteFrequencySSB to 636672 (or adjust dl_absoluteFrequencyPointA) to align DL frequency with SSB.
+
+---
+
+## Date: 2026-05-10 (Morning) - Fix Applied
+
+### Changes Made
+
+#### 1. Updated `generate-configs.py`
+Added support for `absoluteFrequencySSB` parameter in `apply_du_config()`:
+```python
+if 'absoluteFrequencySSB' in usrp:
+    n, text = replace_key_line(text, 'absoluteFrequencySSB', str(usrp['absoluteFrequencySSB'])); total += n
+```
+
+Also added support for `searchSpaceZero` and `controlResourceSetZero` which were already in `du-cfg.yml` but not being applied.
+
+#### 2. Generated DU Config Verified
+```
+absoluteFrequencySSB = 636672;
+initialDLBWPcontrolResourceSetZero = 11;
+initialDLBWPsearchSpaceZero = 0;
+ssb_perRACH_OccasionAndCB_PreamblesPerSSB = 4;
+```
+
+#### 3. Created symlink
+Created `/Users/promaa/cu-du` → `/Users/promaa/Documents/cu-du` because `generate-configs.py` uses `$HOME/cu-du`
+
+### Deployment Plan
+1. Push changes to GitHub
+2. Rsync to serber-minipc: `rsync -avz --exclude='.git' -e "sshpass -e ssh" ./ serber@serber-minipc:cu-du/`
+3. On serber-minipc: `python3 scripts/generate-configs.py du`
+4. Restart DU: `sudo ./nr-softmodem -O /home/serber/cu-du/source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.conf`
+5. Test UE connection
