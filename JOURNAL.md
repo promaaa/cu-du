@@ -701,3 +701,35 @@ The same ARFCN values produce different DL frequencies, which suggests the OAI c
 1. Test UE (Nothing Phone) with the current config - perhaps the UE can still connect
 2. If not, compare the OAI binaries on both hosts (md5sum)
 3. The issue may require OAI code changes to fix the DL frequency calculation in split mode
+
+---
+
+## Date: 2026-05-10 (Afternoon) - Binary Comparison
+
+### Binary Checksums
+- **serber-minipc DU**: `c2f67c509313d2ecddc88533bc2b86a9`
+- **serber-firecell monolithic**: Unknown (need to compare)
+
+### Current Config Running
+```yaml
+absoluteFrequencySSB: 641280
+dl_absoluteFrequencyPointA: 640008
+dl_offsetToCarrier: 0
+prb: 51
+searchSpaceZero: 0
+controlResourceSetZero: 11
+```
+
+### Current State
+- DU is running (NR_MAC frames active) ✅
+- F1 interface established ✅
+- Cell in service (PLMN 001.01) ✅
+- SSB: 3619.2 MHz ✅
+- DL carrier: 3609.3 MHz ❌ (10 MHz mismatch)
+- No UE connection attempts (0 RAPROC in logs)
+
+### Observation
+The DU binary on serber-minipc was compiled at a different time than the monolithic on serber-firecell. They could have different compilation flags or even different code versions.
+
+### Recommendation
+Test with Nothing Phone anyway - if the frequency mismatch is the only issue, the UE might still attempt connection and we could observe whether PRACH detection works. The previous session DID see RAPROC events (UE preambles detected) before the frequency fix was applied.
