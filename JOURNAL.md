@@ -665,13 +665,39 @@ This ~10 MHz offset means the UE sees SSB at one frequency but the DL carrier at
 1. `absoluteFrequencySSB: 636672` → SSB at 3449.856 MHz, DL still at 3609.3 MHz - CRASH (invalid offsetToPointA 357913642)
 2. `absoluteFrequencySSB: 641280` with various `dl_absoluteFrequencyPointA` values → SSB correct at 3619.2 MHz, but DL varies (3611.82, 3614.16, 3612.99, 3613.17) - CRASH (invalid SSB offset)
 3. `absoluteFrequencySSB: 641280` with `dl_absoluteFrequencyPointA: 640008` → SSB 3619.2 MHz, DL 3609.3 MHz - RUNNING but misaligned
+4. Tried `controlResourceSetZero: 11` vs `12` - no impact on frequency alignment
+5. Tried `searchSpaceZero: 0` and `2` - no impact on frequency alignment
+
+### Root Cause Analysis
+The DL frequency calculation in OAI:
+1. `absoluteFrequencySSB = 641280` → SSB at **3619.2 MHz** (correct, confirmed in RRC log)
+2. `dl_absoluteFrequencyPointA = 640008` → converted to **3609.3 MHz** (incorrect)
+3. The DU config file has the SAME values as the working monolithic config, but the DL frequencies differ
+
+**Working Monolithic (serber-firecell):**
+```
+absoluteFrequencySSB = 641280
+dl_absoluteFrequencyPointA = 640008
+→ DL frequency: 3619.2 MHz
+```
+
+**Split DU (serber-minipc):**
+```
+absoluteFrequencySSB = 641280
+dl_absoluteFrequencyPointA = 640008
+→ DL frequency: 3609.3 MHz
+```
+
+The same ARFCN values produce different DL frequencies, which suggests the OAI code on serber-minipc is interpreting them differently. This could be due to:
+1. Different OAI build/compilation flags
+2. Different execution path (DU mode vs monolithic)
+3. Some other runtime difference
 
 ### Files Modified This Session
-- `conf/du-cfg.yml`: Fixed USRP serial from 8002816 → 35F8ABA
-- `scripts/generate-configs.py`: Added dl_absoluteFrequencyPointA replacement support
-- Added dl_absoluteFrequencyPointA to du-cfg.yml (currently 640008)
+- `conf/du-cfg.yml`: Fixed USRP serial from 8002816 → 35F8ABA, added dl_offsetToCarrier
+- `scripts/generate-configs.py`: Added dl_absoluteFrequencyPointA and dl_offsetToCarrier replacement support
 
 ### Next Steps
-1. Test UE (Nothing Phone) to see if it can connect despite the frequency mismatch
-2. If not, investigate OAI code in PHY layer that calculates DL frequency from dl_absoluteFrequencyPointA
-3. The DL frequency issue may require code changes in `nr_common.c` or similar
+1. Test UE (Nothing Phone) with the current config - perhaps the UE can still connect
+2. If not, compare the OAI binaries on both hosts (md5sum)
+3. The issue may require OAI code changes to fix the DL frequency calculation in split mode

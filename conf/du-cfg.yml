@@ -29,3 +29,4 @@ usrp:
   ssb_perRACH_OccasionAndCB_PreamblesPerSSB: 4
   absoluteFrequencySSB: 641280
   dl_absoluteFrequencyPointA: 640008
+  dl_offsetToCarrier: 0
