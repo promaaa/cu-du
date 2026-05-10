@@ -16,7 +16,7 @@ cu:
   tac: 1
 usrp:
   type: b200
-  serial: 8002816
+  serial: 35F8ABA
   band: 78
   clock_src: internal
   max_pdschReferenceSignalPower: -27
@@ -28,3 +28,4 @@ usrp:
   controlResourceSetZero: 11
   ssb_perRACH_OccasionAndCB_PreamblesPerSSB: 4
   absoluteFrequencySSB: 641280
+  dl_absoluteFrequencyPointA: 640008

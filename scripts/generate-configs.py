@@ -169,6 +169,9 @@ def apply_du_config(text, cfg):
     if 'absoluteFrequencySSB' in usrp:
         n, text = replace_key_line(text, 'absoluteFrequencySSB', str(usrp['absoluteFrequencySSB'])); total += n
 
+    if 'dl_absoluteFrequencyPointA' in usrp:
+        n, text = replace_key_line(text, 'dl_absoluteFrequencyPointA', str(usrp['dl_absoluteFrequencyPointA'])); total += n
+
     n, text = replace_key_inline(text, 'sst', '1'); total += n
 
     return total, text

@@ -619,14 +619,59 @@ DL frequency 3609300000: band 78, UL frequency 3609300000
 This was the SAME frequency as before (3609.3 MHz) - meaning the SSB and DL carrier were misaligned as suspected.
 
 ### Next Steps
-1. **Check physical USRP connection** - verify USB cable and power
-2. Once USRP is back, retest with `absoluteFrequencySSB: 641280` (SSB at 3619.2 MHz)
-3. Verify DL frequency is also 3619.2 MHz (not 3609.3 MHz)
+1. **Reconnect USRP B210** to serber-minipc (physical check)
+2. Once detected, restart DU with `absoluteFrequencySSB: 641280`
+3. Verify DL frequency matches SSB frequency (both should be 3619.2 MHz)
+4. Test UE connection with Nothing Phone
+
+---
+
+## Date: 2026-05-10 (After Hardware Reconnection)
+
+### Issue Identified: Wrong USRP Serial
+The USRP B210 on serber-minipc has serial **35F8ABA** (not 8002816 as previously configured).
+
+### Fix Applied
+- Changed `conf/du-cfg.yml`: `serial: 35F8ABA`
+- Regenerated config and synced to serber-minipc
+
+### Current Status
+- DU is running with F1 interface established ✅
+- NR_MAC frames are active (0.0, 128.0, 256.0...)
+- Cell in service: PLMN 001.01, Cell ID 12345678
+- **No UE connection attempts detected yet**
+
+### Frequency Alignment Analysis
+
+**Configuration:**
+```
+absoluteFrequencySSB = 641280 (SSB at 3619.2 MHz)
+dl_absoluteFrequencyPointA = 640008 (ARFCN for PointA)
+```
+
+**What the logs show:**
+```
+[RRC] absoluteFrequencySSB 641280 corresponds to 3619200000 Hz
+[NR_PHY] dlfreq:3609300 (DL at 3609.3 MHz)
+```
+
+**Conclusion:** The OAI code calculates SSB frequency correctly from absoluteFrequencySSB (3619.2 MHz), but the DL carrier frequency (3609.3 MHz) is derived from dl_absoluteFrequencyPointA=640008 + offsetToPointA=86.
+
+This ~10 MHz offset means the UE sees SSB at one frequency but the DL carrier at another - the UE cannot connect because it expects them to be aligned.
+
+**This is an OAI code issue**, not a configuration issue. The dl_absoluteFrequencyPointA value in the config file is not being interpreted correctly by the NR_PHY layer.
+
+### What Was Tested
+1. `absoluteFrequencySSB: 636672` → SSB at 3449.856 MHz, DL still at 3609.3 MHz - CRASH (invalid offsetToPointA 357913642)
+2. `absoluteFrequencySSB: 641280` with various `dl_absoluteFrequencyPointA` values → SSB correct at 3619.2 MHz, but DL varies (3611.82, 3614.16, 3612.99, 3613.17) - CRASH (invalid SSB offset)
+3. `absoluteFrequencySSB: 641280` with `dl_absoluteFrequencyPointA: 640008` → SSB 3619.2 MHz, DL 3609.3 MHz - RUNNING but misaligned
 
 ### Files Modified This Session
-- `scripts/generate-configs.py`: Added `absoluteFrequencySSB`, `searchSpaceZero`, `controlResourceSetZero` support
-- `conf/du-cfg.yml`: Contains all necessary parameters for frequency alignment
-- `source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.conf`: Generated config with correct values
+- `conf/du-cfg.yml`: Fixed USRP serial from 8002816 → 35F8ABA
+- `scripts/generate-configs.py`: Added dl_absoluteFrequencyPointA replacement support
+- Added dl_absoluteFrequencyPointA to du-cfg.yml (currently 640008)
 
-### Commit
-`650f5b7` - Add absoluteFrequencySSB support and generate new DU config
+### Next Steps
+1. Test UE (Nothing Phone) to see if it can connect despite the frequency mismatch
+2. If not, investigate OAI code in PHY layer that calculates DL frequency from dl_absoluteFrequencyPointA
+3. The DL frequency issue may require code changes in `nr_common.c` or similar
