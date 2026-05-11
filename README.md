@@ -1,6 +1,11 @@
-# CU/DU Split Repository
+# CU/DU Split — 5G NR Emission
 
-OAI 5G NR with CU/DU split deployment across `serber-firecell` (CU + CN) and `serber-minipc` (DU + USRP B210).
+This repository sets up a distributed OAI 5G NR stack with a **CU/DU split** across two hosts:
+
+- **serber-firecell** — CU (RRC + PDCP + SDAP) + Core Network
+- **serber-minipc** — DU (MAC + RLC + PHY) + USRP B210
+
+The goal is to demonstrate that the split architecture can successfully emit a 5G signal and allow a UE to connect.
 
 ## Topology
 
@@ -17,9 +22,9 @@ OAI 5G NR with CU/DU split deployment across `serber-firecell` (CU + CN) and `se
 │          │                        │ F1-U (10.76.170.39)        │
 │          │◄────── NG ─────────────┘                            │
 └──────────┼──────────────────────────────────────────────────────┘
-           │
-           │  LAN  (10.76.170.0/25)
-           │
+            │
+            │  LAN  (10.76.170.0/25)
+            │
 ┌──────────┼──────────────────────────────────────────────────────┐
 │          │              serber-minipc                            │
 │   ┌──────▼──────────────────────────────────┐                  │
@@ -36,58 +41,155 @@ OAI 5G NR with CU/DU split deployment across `serber-firecell` (CU + CN) and `se
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-## Quick Start
+## Repository Setup
 
-### Scenario A — Full CU/DU Split (production)
+Clone this repository on both hosts:
 
-**serber-firecell:**
 ```bash
-cd ~/cu-du && roles/cu/start.sh
+git clone https://github.com/promaaa/cu-du.git ~/cu-du
 ```
 
-**serber-minipc:**
+## Prerequisites
+
+### Both Hosts
+
 ```bash
-cd ~/cu-du && roles/du/start.sh
+sudo apt update
+sudo apt install -y \
+  autoconf automake build-essential ccache cmake cpufrequtils \
+  doxygen ethtool g++ git inetutils-tools libboost-all-dev \
+  libncurses-dev libusb-1.0-0 libusb-1.0-0-dev libusb-dev \
+  python3-dev python3-mako python3-numpy python3-requests \
+  python3-scipy python3-setuptools python3-ruamel.yaml \
+  libsqlite3-dev libblas-dev libopenblas-dev \
+  libhiredis-dev liblapacke-dev
 ```
 
-### Scenario D — All-in-one (monolithic, same as current)
+### Core Network Host (serber-firecell)
 
-**serber-firecell:**
 ```bash
-cd ~/cu-du && roles/all/start.sh
+sudo apt install -y ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo usermod -a -G docker $(whoami)
+# Reboot required
 ```
 
-## Which Script for Which Scenario?
+## Build UHD from Source
 
-| Scenario | serber-firecell | serber-minipc |
-|---|---|---|
-| **A — Full split** | `roles/cu/start.sh` | `roles/du/start.sh` |
-| **B — CU-only (testing)** | `roles/cu/start.sh` | — |
-| **C — DU-only (testing)** | — | `roles/du/start.sh` |
-| **D — All-in-one** | `roles/all/start.sh` | — |
+> Only needed once per host.
 
-See [RUN.md](RUN.md) for detailed step-by-step operation instructions.
+```bash
+git clone https://github.com/EttusResearch/uhd.git ~/uhd
+cd ~/uhd
+git checkout v4.8.0.0
+cd host
+mkdir build && cd build
+cmake ../
+make -j$(nproc)
+make test || true
+sudo make install
+sudo ldconfig
+sudo uhd_images_downloader
+```
 
-## SIB8 / Public Warning System
+Verify:
+```bash
+sudo uhd_find_devices
+```
 
-SIB8 warning messages are built in the CU's RRC layer, sent to the DU over F1 via the `write_replace_warning_req` message, and transmitted over the air by the DU's USRP.
+## Build OAI nr-softmodem
 
-The warning text is configured in `source/openairinterface5g/sib8.conf`.
+```bash
+git clone https://gitlab.eurecom.fr/oai/openairinterface5g.git ~/openairinterface5g
+cd ~/openairinterface5g
+git checkout 102965a669b9444857c27843ec8ce62780bf9d37
 
-## Deployment Scripts
+# Install dependencies
+cd cmake_targets
+sudo ./build_oai -I
 
-| Script | Description |
-|---|---|
-| `scripts/deploy-cu.sh` | Clone + build CU on serber-firecell |
-| `scripts/deploy-du.sh` | Clone + build DU on serber-minipc |
-| `scripts/deploy-all.sh` | Clone + build all-in-one on single host |
-| `scripts/check-health.sh` | Verify all components running |
+# Build nr-softmodem (CU build is lighter, DU build uses -j4 cap for limited cores/RAM)
+sudo ./build_oai -w USRP --ninja --gNB -C
+```
 
-## Documentation
+> **Note:** On DU (serber-minipc), cap parallelism at `-j4` due to limited cores/RAM.
 
-- [RUN.md](RUN.md) — Full stack operation guide
-- [SPLIT.md](SPLIT.md) — CU/DU architecture + 3GPP F1/E1 docs
-- [INSTALL.md](INSTALL.md) — Dependencies, UHD build, OAI build
+## Core Network Setup
+
+Download OAI CN5G configs:
+
+```bash
+wget -O ~/cu-du/oai-cn5g.zip \
+  https://gitlab.eurecom.fr/oai/openairinterface5g/-/archive/develop/openairinterface5g-develop.zip?path=doc/tutorial_resources/oai-cn5g
+unzip ~/cu-du/oai-cn5g.zip
+mv ~/openairinterface5g-develop-doc-tutorial_resources-oai-cn5g/doc/tutorial_resources/oai-cn5g \
+  ~/cu-du/oai-cn5g
+rm -rf ~/openairinterface5g-develop*
+```
+
+Pull Docker images:
+```bash
+cd ~/cu-du/oai-cn5g
+docker compose pull
+```
+
+## Running the Stack
+
+### Step 1 — Clean Up
+
+On **serber-firecell**:
+```bash
+pkill -f nr-softmodem || true
+```
+
+On **serber-minipc**:
+```bash
+pkill -f nr-softmodem || true
+```
+
+### Step 2 — Start CU + CN (serber-firecell)
+
+```bash
+cd ~/cu-du
+roles/cu/start.sh
+```
+
+### Step 3 — Start DU (serber-minipc)
+
+```bash
+cd ~/cu-du
+roles/du/start.sh
+```
+
+> Start the CU first. The DU will connect to the CU's F1-C at `10.76.170.38:2152`.
+
+### Stop
+
+```bash
+# On serber-firecell
+roles/cu/stop.sh
+
+# On serber-minipc
+roles/du/stop.sh
+```
+
+## Verify Operation
+
+```bash
+~/cu-du/scripts/check-health.sh
+```
+
+Expected checks:
+- CU process alive on serber-firecell
+- DU process alive on serber-minipc
+- CN containers healthy on serber-firecell
+- F1 link established (`F1 Setup` in logs)
+- AMF registered (`NGAP_REGISTER_GNB_CNF`)
 
 ## Network Parameters
 
@@ -95,7 +197,15 @@ The warning text is configured in `source/openairinterface5g/sib8.conf`.
 |---|---|
 | PLMN | MCC 001, MNC 01 |
 | Band | n78 (3300–3800 MHz) |
-| BW | 106 PRB @ 30 kHz SCS |
+| BW | 51 PRB @ 30 kHz SCS |
 | AbsoluteFrequencySSB | 641280 (3619.2 MHz) |
 | TAC | 1 |
 | USRP (DU) | B210 serial `35F8ABA` |
+
+## Deployment Scripts
+
+| Script | Description |
+|---|---|
+| `scripts/deploy-cu.sh` | Clone + build CU on serber-firecell |
+| `scripts/deploy-du.sh` | Clone + build DU on serber-minipc |
+| `scripts/check-health.sh` | Verify all components running |
