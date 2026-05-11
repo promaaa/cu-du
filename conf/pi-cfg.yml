@@ -1,0 +1,32 @@
+host: serber-pi
+role: pi
+plmn:
+  mcc: "001"
+  mnc: "01"
+  mnc_length: 2
+cu:
+  f1c_ip: 10.76.170.102
+  f1u_ip: 10.76.170.102
+  f1c_port: 2152
+  remote_f1c_ip: 10.76.170.38
+  remote_f1c_port: 2152
+  gnb_id: 0xe00
+  gnb_du_id: 0xe00
+  gnb_name: gNB-CU-FIRECELL
+  tac: 1
+usrp:
+  type: b200
+  serial: CHANGE_ME
+  band: 78
+  clock_src: internal
+  max_pdschReferenceSignalPower: -27
+  max_rxgain: 114
+  att_tx: 12
+  att_rx: 12
+  prb: 51
+  searchSpaceZero: 0
+  controlResourceSetZero: 11
+  ssb_perRACH_OccasionAndCB_PreamblesPerSSB: 4
+  absoluteFrequencySSB: 641280
+  dl_absoluteFrequencyPointA: 640008
+  dl_offsetToCarrier: 0

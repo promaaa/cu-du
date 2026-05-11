@@ -9,6 +9,8 @@ The goal is to demonstrate that the split architecture can successfully emit a 5
 
 ## Topology
 
+### Option 1: serber-minipc as DU
+
 ```mermaid
 flowchart TB
     subgraph CN["serber-firecell (10.76.170.38)"]
@@ -31,13 +33,39 @@ flowchart TB
     style USRP fill:#2a1a3a,stroke:#a04ad9,color:#fff
 ```
 
+### Option 2: serber-pi (Raspberry Pi 5) as DU
+
+```mermaid
+flowchart TB
+    subgraph CN["serber-firecell (10.76.170.38)"]
+        CN_container["oai-cn5g (docker)"]
+        CU["nr-softmodem (CU)<br/>RRC + PDCP + SDAP"]
+        CN_container -->|"NGAP"| CU
+    end
+
+    subgraph PI["serber-pi (10.76.170.94)"]
+        PI_process["nr-softmodem (DU)<br/>MAC + RLC + PHY"]
+        USRP_PI["USRP B210<br/>TBD serial<br/>3619.2 MHz<br/>Band n78"]
+        PI_process --> USRP_PI
+    end
+
+    CU <-.->|"F1-C (SCTP)<br/>10.76.170.38:2152 ↔ 10.76.170.102:2152"| PI_process
+    CU <-.->|"F1-U (GTP-U)<br/>10.76.170.39 ↔ 10.76.170.103"| PI_process
+
+    style CN fill:#1a3a5c,stroke:#4a90d9,color:#fff
+    style PI fill:#2a1a2a,stroke:#a04ad9,color:#fff
+    style USRP_PI fill:#2a1a3a,stroke:#a04ad9,color:#fff
+```
+
 ### Interface Summary
 
 | Interface | From → To | Protocol | IP |
 |---|---|---|---|
 | NG | CU → AMF | NGAP | 192.168.70.129 → 192.168.70.132 |
-| F1-C | CU ↔ DU | SCTP | CU: 10.76.170.38, DU: 10.76.170.100 |
-| F1-U | CU ↔ DU | GTP-U | CU: 10.76.170.39, DU: 10.76.170.101 |
+| F1-C (minipc) | CU ↔ DU | SCTP | CU: 10.76.170.38, DU: 10.76.170.100 |
+| F1-U (minipc) | CU ↔ DU | GTP-U | CU: 10.76.170.39, DU: 10.76.170.101 |
+| F1-C (pi) | CU ↔ DU | SCTP | CU: 10.76.170.38, PI: 10.76.170.102 |
+| F1-U (pi) | CU ↔ DU | GTP-U | CU: 10.76.170.39, PI: 10.76.170.103 |
 
 ## Repository Setup
 
@@ -145,7 +173,7 @@ On **serber-firecell**:
 pkill -f nr-softmodem || true
 ```
 
-On **serber-minipc**:
+On **serber-minipc** (or serber-pi):
 ```bash
 pkill -f nr-softmodem || true
 ```
@@ -157,11 +185,25 @@ cd ~/cu-du
 roles/cu/start.sh
 ```
 
-### Step 3: Start DU (serber-minipc)
+### Step 3: Start DU
 
+**Option A: serber-minipc as DU**
 ```bash
 cd ~/cu-du
 roles/du/start.sh
+```
+
+**Option B: serber-pi as DU**
+
+First, update the USRP serial in `conf/pi-cfg.yml`. Find the serial by running on serber-pi:
+```bash
+sudo uhd_find_devices
+```
+
+Then start:
+```bash
+cd ~/cu-du
+roles/pi/start.sh
 ```
 
 > Start the CU first. The DU will connect to the CU's F1-C at `10.76.170.38:2152`.
@@ -174,6 +216,9 @@ roles/cu/stop.sh
 
 # On serber-minipc
 roles/du/stop.sh
+
+# On serber-pi
+roles/pi/stop.sh
 ```
 
 ## Verify Operation

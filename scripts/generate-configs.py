@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate gnb-cu.conf and gnb-du.conf by modifying OAI reference configs."""
+"""Generate gnb-cu.conf, gnb-du.conf, and gnb-pi.conf by modifying OAI reference configs."""
 
 import os
 import sys
@@ -10,8 +10,10 @@ from ruamel.yaml import YAML
 REPO_BASE = os.environ.get('HOME', os.path.expanduser('~')) + '/cu-du'
 REF_CU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/cu_gnb.conf')
 REF_DU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/du_gnb.conf')
+REF_PI = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/du_gnb.conf')
 OUT_CU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.conf')
 OUT_DU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.conf')
+OUT_PI = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-pi.conf')
 CONF_DIR = os.path.join(REPO_BASE, 'conf')
 SIB8_SRC = os.path.join(REPO_BASE, 'sib8.conf')
 SIB8_DST = os.path.join(REPO_BASE, 'source/openairinterface5g/sib8.conf')
@@ -146,7 +148,7 @@ def apply_du_config(text, cfg):
     n, text = replace_key_line(text, 'dl_carrierBandwidth', str(prb)); total += n
     n, text = replace_key_line(text, 'ul_carrierBandwidth', str(prb)); total += n
     n, text = replace_key_inline(text, 'initialDLBWPlocationAndBandwidth', str(initial_bwp)); total += n
-    n, text = replace_key_inline(text, 'initialULBWPlocationAndBandwidth', str(initial_bwp)); total += n
+    n, text = replace_key_inline(text, 'initialULBWPlocationAndBandWidth', str(initial_bwp)); total += n
 
     n, text = replace_key_line(text, 'sdr_addrs', f'"serial={usrp["serial"]}"'); total += n
     n, text = replace_key_line(text, 'clock_src', f'"{usrp["clock_src"]}"'); total += n
@@ -173,11 +175,15 @@ def apply_du_config(text, cfg):
         n, text = replace_key_line(text, 'dl_absoluteFrequencyPointA', str(usrp['dl_absoluteFrequencyPointA'])); total += n
 
     if 'dl_offsetToCarrier' in usrp:
-        n, text = replace_key_line(text, 'dl_offstToCarrier', str(usrp['dl_offsetToCarrier'])); total += n
+        n, text = replace_key_line(text, 'dl_offsetToCarrier', str(usrp['dl_offsetToCarrier'])); total += n
 
     n, text = replace_key_inline(text, 'sst', '1'); total += n
 
     return total, text
+
+
+def apply_pi_config(text, cfg):
+    return apply_du_config(text, cfg)
 
 
 def copy_sib8():
@@ -186,8 +192,8 @@ def copy_sib8():
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ('cu', 'du', 'all'):
-        print("Usage: generate-configs.py cu|du|all")
+    if len(sys.argv) < 2 or sys.argv[1] not in ('cu', 'du', 'pi', 'all'):
+        print("Usage: generate-configs.py cu|du|pi|all")
         sys.exit(1)
 
     mode = sys.argv[1]
@@ -217,6 +223,19 @@ def main():
         with open(OUT_DU, 'w') as f:
             f.write(text)
         print(f"Generated {OUT_DU} ({count} substitutions)")
+
+    if mode in ('pi', 'all'):
+        if not os.path.exists(REF_PI):
+            print(f"ERROR: Reference PI config not found at {REF_PI}")
+            sys.exit(1)
+        cfg = load_yaml(os.path.join(CONF_DIR, 'pi-cfg.yml'))
+        with open(REF_PI) as f:
+            text = f.read()
+        count, text = apply_pi_config(text, cfg)
+        os.makedirs(os.path.dirname(OUT_PI), exist_ok=True)
+        with open(OUT_PI, 'w') as f:
+            f.write(text)
+        print(f"Generated {OUT_PI} ({count} substitutions)")
 
     copy_sib8()
 
