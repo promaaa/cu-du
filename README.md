@@ -29,9 +29,9 @@ flowchart TB
     F1C -.->|"F1-C<br/>10.76.170.100:2152"| DU_process
     F1U -.->|"F1-U<br/>10.76.170.101"| DU_process
 
-    style CN fill:#e1f5fe
-    style DU fill:#fff3e0
-    style USRP fill:#f3e5f5
+    style CN fill:#1a3a5c,stroke:#4a90d9,color:#fff
+    style DU fill:#3a2a1a,stroke:#d9a04a,color:#fff
+    style USRP fill:#2a1a3a,stroke:#a04ad9,color:#fff
     style F1C fill:transparent,stroke:transparent
     style F1U fill:transparent,stroke:transparent
 ```
