@@ -9,37 +9,40 @@ The goal is to demonstrate that the split architecture can successfully emit a 5
 
 ## Topology
 
+```mermaid
+flowchart TB
+    subgraph CN["serber-firecell (10.76.170.38)"]
+        CN_container["oai-cn5g (docker)"]
+        CU["nr-softmodem (CU)<br/>RRC + PDCP + SDAP"]
+        CN_container -->|"NGAP"| CU
+    end
+
+    CU -->|"F1-C<br/>10.76.170.38:2152"| F1C[" "]
+    CU -->|"F1-U<br/>10.76.170.39"| F1U[" "]
+
+    subgraph DU["serber-minipc (10.76.170.100)"]
+        DU_process["nr-softmodem (DU)<br/>MAC + RLC + PHY"]
+        USRP["USRP B210<br/>35F8ABA<br/>3619.2 MHz<br/>Band n78"]
+        DU_process --> USRP
+    end
+
+    F1C -.->|"F1-C<br/>10.76.170.100:2152"| DU_process
+    F1U -.->|"F1-U<br/>10.76.170.101"| DU_process
+
+    style CN fill:#e1f5fe
+    style DU fill:#fff3e0
+    style USRP fill:#f3e5f5
+    style F1C fill:transparent,stroke:transparent
+    style F1U fill:transparent,stroke:transparent
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      serber-firecell                            │
-│                                                                 │
-│   ┌──────────────┐      ┌──────────────────────┐               │
-│   │  oai-cn5g    │      │   nr-softmodem (CU)  │               │
-│   │  (docker)    │      │   RRC + PDCP + SDAP  │               │
-│   └──────┬───────┘      └──────────┬───────────┘               │
-│          │                        │                            │
-│   192.168.70.132 (AMF)           │ F1-C (10.76.170.38)        │
-│          │                        │ F1-U (10.76.170.39)        │
-│          │◄────── NG ─────────────┘                            │
-└──────────┼──────────────────────────────────────────────────────┘
-            │
-            │  LAN  (10.76.170.0/25)
-            │
-┌──────────┼──────────────────────────────────────────────────────┐
-│          │              serber-minipc                            │
-│   ┌──────▼──────────────────────────────────┐                  │
-│   │        nr-softmodem (DU)                 │                  │
-│   │   MAC + RLC + PHY + USRP B210           │                  │
-│   └──────────────┬───────────────────────────┘                  │
-│                  │ F1-C (10.76.170.100)                         │
-│                  │ F1-U (10.76.170.101)                         │
-│            ┌─────▼─────┐                                        │
-│            │  USRP     │                                        │
-│            │  B210     │ ─── RF (3619.2 MHz, band n78)          │
-│            │ 35F8ABA   │                                        │
-│            └───────────┘                                        │
-└──────────────────────────────────────────────────────────────────┘
-```
+
+### Interface Summary
+
+| Interface | From → To | Protocol | IP |
+|---|---|---|---|
+| NG | CU → AMF | NGAP | 192.168.70.129 → 192.168.70.132 |
+| F1-C | CU ↔ DU | SCTP | CU: 10.76.170.38, DU: 10.76.170.100 |
+| F1-U | CU ↔ DU | GTP-U | CU: 10.76.170.39, DU: 10.76.170.101 |
 
 ## Repository Setup
 
