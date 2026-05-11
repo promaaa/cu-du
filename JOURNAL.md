@@ -731,3 +731,36 @@ The DU was restarted with the original config (searchSpaceZero=0, controlResourc
 1. Wait for Nothing Phone to attempt RA
 2. Check if LLLL frames increase (indicates CPU can't keep up)
 3. The CCE shortage issue (2 candidates at L2) may still affect multiple UEs
+
+---
+
+## Date: 2026-05-10 (Evening) - Network Connectivity Lost
+
+### Problem
+serber-minipc (10.76.170.100) became completely unreachable:
+- Ping from local machine: 100% packet loss
+- Ping from serber-firecell: 100% packet loss
+- SSH connection: Operation timed out
+
+### Previous Occurrence
+This same issue occurred on 2026-05-08 during the PWS handler debugging session. At that time, the hosts became unreachable but eventually recovered.
+
+### Current System Status
+- **serber-firecell (10.76.170.38)**: Reachable ✅
+- **serber-minipc (10.76.170.100)**: Unreachable ❌
+- **Nothing Phone (UE)**: Ready for testing
+
+### Actions Needed
+serber-minipc needs to be physically checked or rebooted. The Intel N95 mini PC may have:
+1. Locked up/frozen
+2. Network cable disconnected
+3. Network interface issue
+
+### What Was Working Before
+- DU was running with F1 established (assoc_id 457)
+- NR_MAC frames active (0.0, 128.0, 256.0...)
+- CPU in performance mode
+- Cell in service (PLMN 001.01)
+
+### Note
+This is a recurring issue where serber-minipc becomes unreachable after some time. Need to investigate the root cause - possibly a hardware issue with the Intel N95 platform.
