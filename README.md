@@ -17,23 +17,18 @@ flowchart TB
         CN_container -->|"NGAP"| CU
     end
 
-    CU -->|"F1-C<br/>10.76.170.38:2152"| F1C[" "]
-    CU -->|"F1-U<br/>10.76.170.39"| F1U[" "]
-
     subgraph DU["serber-minipc (10.76.170.100)"]
         DU_process["nr-softmodem (DU)<br/>MAC + RLC + PHY"]
         USRP["USRP B210<br/>35F8ABA<br/>3619.2 MHz<br/>Band n78"]
         DU_process --> USRP
     end
 
-    F1C -.->|"F1-C<br/>10.76.170.100:2152"| DU_process
-    F1U -.->|"F1-U<br/>10.76.170.101"| DU_process
+    CU <-.->|"F1-C (SCTP)<br/>10.76.170.38:2152 ↔ 10.76.170.100:2152"| DU_process
+    CU <-.->|"F1-U (GTP-U)<br/>10.76.170.39 ↔ 10.76.170.101"| DU_process
 
     style CN fill:#1a3a5c,stroke:#4a90d9,color:#fff
     style DU fill:#3a2a1a,stroke:#d9a04a,color:#fff
     style USRP fill:#2a1a3a,stroke:#a04ad9,color:#fff
-    style F1C fill:transparent,stroke:transparent
-    style F1U fill:transparent,stroke:transparent
 ```
 
 ### Interface Summary
