@@ -1,9 +1,9 @@
-# CU/DU Split — 5G NR Emission
+# CU/DU Split: 5G NR Emission
 
 This repository sets up a distributed OAI 5G NR stack with a **CU/DU split** across two hosts:
 
-- **serber-firecell** — CU (RRC + PDCP + SDAP) + Core Network
-- **serber-minipc** — DU (MAC + RLC + PHY) + USRP B210
+- **serber-firecell** (CU: RRC + PDCP + SDAP) + Core Network
+- **serber-minipc** (DU: MAC + RLC + PHY) + USRP B210
 
 The goal is to demonstrate that the split architecture can successfully emit a 5G signal and allow a UE to connect.
 
@@ -143,7 +143,7 @@ docker compose pull
 
 ## Running the Stack
 
-### Step 1 — Clean Up
+### Step 1: Clean Up
 
 On **serber-firecell**:
 ```bash
@@ -155,14 +155,14 @@ On **serber-minipc**:
 pkill -f nr-softmodem || true
 ```
 
-### Step 2 — Start CU + CN (serber-firecell)
+### Step 2: Start CU + CN (serber-firecell)
 
 ```bash
 cd ~/cu-du
 roles/cu/start.sh
 ```
 
-### Step 3 — Start DU (serber-minipc)
+### Step 3: Start DU (serber-minipc)
 
 ```bash
 cd ~/cu-du
