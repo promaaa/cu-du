@@ -177,6 +177,9 @@ def apply_du_config(text, cfg):
     if 'dl_offsetToCarrier' in usrp:
         n, text = replace_key_line(text, 'dl_offsetToCarrier', str(usrp['dl_offsetToCarrier'])); total += n
 
+    if 'ssbPB_BlockPower' in usrp:
+        n, text = replace_key_line(text, 'ssPBCH_BlockPower', str(usrp['ssbPB_BlockPower'])); total += n
+
     n, text = replace_key_inline(text, 'sst', '1'); total += n
 
     return total, text
