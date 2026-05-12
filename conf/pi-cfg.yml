@@ -5,8 +5,8 @@ plmn:
   mnc: "01"
   mnc_length: 2
 cu:
-  f1c_ip: 10.76.170.102
-  f1u_ip: 10.76.170.102
+  f1c_ip: 10.76.170.94
+  f1u_ip: 10.76.170.94
   f1c_port: 2152
   remote_f1c_ip: 10.76.170.38
   remote_f1c_port: 2152
