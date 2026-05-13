@@ -1,8 +1,8 @@
 host: serber-firecell
 role: cu
 plmn:
-  mcc: "001"
-  mnc: "01"
+  mcc: 1
+  mnc: 1
   mnc_length: 2
 amf:
   ip: 192.168.70.132
