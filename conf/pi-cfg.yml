@@ -1,8 +1,8 @@
 host: serber-pi
 role: pi
 plmn:
-  mcc: 1
-  mnc: 1
+  mcc: "001"
+  mnc: "01"
   mnc_length: 2
 cu:
   f1c_ip: 10.76.170.94
