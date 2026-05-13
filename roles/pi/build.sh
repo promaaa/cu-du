@@ -73,7 +73,7 @@ if [ -f "$OAI_DIR/cmake_targets/ran_build/build/nr-softmodem" ]; then
 else
     echo "[PI build] Building nr-softmodem (-j4 for limited RAM on Pi 5)..."
     cd "$OAI_DIR/cmake_targets"
-    sudo ./build_oai -w USRP --ninja --gNB -C -j4
+    sudo ./build_oai -w USRP --ninja --gNB -C --build-tool-opt "-j4"
 fi
 
 echo "[PI build] Done."
