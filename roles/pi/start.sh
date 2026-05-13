@@ -35,4 +35,5 @@ cd "$OAI_BUILD_DIR"
 sudo ./nr-softmodem \
     -O "$OAI_CONF_DIR/gnb-pi.conf" \
     --log_config.global_log_level info \
+    -E \
     | tee "$PI_LOG"

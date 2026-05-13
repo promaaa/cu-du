@@ -3,8 +3,8 @@
 
 export OAI_COMMIT=102965a669b9444857c27843ec8ce62780bf9d37
 export UHD_VERSION=v4.8.0.0
-export LOG_DIR=/tmp
-export CU_DU_BASE=~/cu-du
+export CU_DU_BASE="$HOME/cu-du"
+export LOG_DIR="$CU_DU_BASE/logs"
 
 # F1 subnet (existing LAN)
 export F1_SUBNET=10.76.170.0/25
