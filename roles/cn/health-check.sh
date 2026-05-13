@@ -18,6 +18,6 @@ docker exec oai-upf tc qdisc show dev tun0 2>/dev/null || true
 
 echo "[CN health] Verifying SIM registration..."
 docker exec mysql mysql -u root -plinux -D oai_db -e \
-    "SELECT * FROM AuthenticationSubscription WHERE supi='001010000059449';" 2>/dev/null
+    "SELECT ueid, supi FROM AuthenticationSubscription WHERE supi='001010000059449'; SELECT ueid, servingPlmnid, JSON_EXTRACT(dnnConfigurations, '$.oai.staticIpAddress[0].ipv4Addr') AS ue_ip FROM SessionManagementSubscriptionData WHERE ueid='001010000059449';" 2>/dev/null
 
 echo "[CN health] Done."
