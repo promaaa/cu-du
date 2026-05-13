@@ -69,6 +69,24 @@ qdisc tbf 8001: root refcnt 2 rate 1500Kbit burst 8Kb lat 400ms
 
 This shaping was restored after testing lower limits. The current working user-confirmed setup uses `1500kbit`, not the temporary `512kbit` test.
 
+## UE Subscriber
+
+The Nothing Phone SIM is provisioned in the OAI core as:
+
+```text
+IMSI/SUPI = 001010000059449
+DNN      = oai
+S-NSSAI  = sst 1, sd FFFFFF
+UE IPv4  = 10.0.0.6
+AMF      = 8000
+AKA      = 5G_AKA / milenage
+Ki       = 5686e601f3a1942d4c5cd262ba6b4b20
+OPc      = aeb1cabd8ed7a09b48d17eb3d8af172c
+SQN      = 000000000000, NON_TIME_BASED
+```
+
+These credentials were recovered from the old working `~/monolithic/configuration/add-sim-card.sql` and are now stored directly in this repo's CN seed path so a fresh clone does not need `~/monolithic`.
+
 ## CU Configuration
 
 Active CU config:

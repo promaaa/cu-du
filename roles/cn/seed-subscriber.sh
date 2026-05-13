@@ -3,6 +3,8 @@ set -euo pipefail
 
 IMSI="${IMSI:-001010000059449}"
 UE_IP="${UE_IP:-10.0.0.6}"
+SIM_K="${SIM_K:-5686e601f3a1942d4c5cd262ba6b4b20}"
+SIM_OPC="${SIM_OPC:-aeb1cabd8ed7a09b48d17eb3d8af172c}"
 
 echo "[CN seed] Ensuring subscriber IMSI $IMSI exists in oai_db..."
 
@@ -12,9 +14,9 @@ REPLACE INTO AuthenticationSubscription
      authenticationManagementField, algorithmId, encOpcKey, encTopcKey,
      vectorGenerationInHss, n5gcAuthMethod, rgAuthenticationInd, supi)
 VALUES
-    ('$IMSI', '5G_AKA', 'fec86ba6eb707ed08905757b1bb44b8f', 'fec86ba6eb707ed08905757b1bb44b8f',
+    ('$IMSI', '5G_AKA', '$SIM_K', '$SIM_K',
      '{"sqn": "000000000000", "sqnScheme": "NON_TIME_BASED", "lastIndexes": {"ausf": 0}}',
-     '8000', 'milenage', 'C42449363BBAD02B66D16BC975D77CC1', NULL, NULL, NULL, NULL, '$IMSI');
+     '8000', 'milenage', '$SIM_OPC', NULL, NULL, NULL, NULL, '$IMSI');
 
 REPLACE INTO SessionManagementSubscriptionData
     (ueid, servingPlmnid, singleNssai, dnnConfigurations)

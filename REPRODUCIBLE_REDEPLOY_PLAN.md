@@ -83,6 +83,13 @@ docker exec oai-upf tc qdisc replace dev tun0 root tbf rate 1500kbit burst 64kbi
 ```
 
 - Make the shaping idempotent and verify it in health checks.
+- Seed the physical Nothing Phone subscriber from the repo, not from `~/monolithic`:
+  - IMSI `001010000059449`
+  - UE IP `10.0.0.6`
+  - Ki `5686e601f3a1942d4c5cd262ba6b4b20`
+  - OPc `aeb1cabd8ed7a09b48d17eb3d8af172c`
+  - AMF `8000`
+  - `5G_AKA` / `milenage`
 
 ## 5. Add A Real Pi Bootstrap
 

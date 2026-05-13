@@ -338,3 +338,22 @@ Follow-up repo hardening:
 - Verified on `serber-firecell`: `cd /home/serber/cu-du && scripts/validate-working-config.sh` passes.
 - Verified live CU process command line now points to `/home/serber/cu-du/source/openairinterface5g/...`.
 - Verified on `serber-pi`: generated `gnb-pi.conf` contains 106 PRB, F1-U `2152`, `att_tx=3`, `att_rx=12`, and `serial=35F8ABA`.
+
+### 2026-05-13 - Fresh Clone Reproducibility Run
+
+Archived the old `/home/serber/cu-du` directories before replacing them:
+
+- `serber-firecell`: `/home/serber/cu-du-archives/cu-du-firecell-20260513-151438.tgz`
+- `serber-pi`: `/home/serber/cu-du-archives/cu-du-pi-20260513-141438.tgz`
+
+Then moved the pre-clone directories aside and cloned `https://github.com/promaaa/cu-du.git` fresh on both hosts. Fresh-clone build results:
+
+- `serber-firecell`: CU and core bootstrap/build completed.
+- `serber-pi`: DU build completed with the pinned OAI commit and B210-enabled build.
+
+First fresh runtime attempt reached NG setup, F1 setup, RACH, and RRC, but the phone returned Authentication Failure / MAC failure. Root cause: the repo had seeded the stock OAI test Ki/OPc for IMSI `001010000059449`, while the physical SIM uses the values from the old working monolithic config:
+
+- Ki `5686e601f3a1942d4c5cd262ba6b4b20`
+- OPc `aeb1cabd8ed7a09b48d17eb3d8af172c`
+
+Updated the repo seed path and bundled OAI DB SQL so the fresh clone no longer depends on `~/monolithic/configuration/add-sim-card.sql` for this subscriber.
