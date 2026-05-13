@@ -357,3 +357,23 @@ First fresh runtime attempt reached NG setup, F1 setup, RACH, and RRC, but the p
 - OPc `aeb1cabd8ed7a09b48d17eb3d8af172c`
 
 Updated the repo seed path and bundled OAI DB SQL so the fresh clone no longer depends on `~/monolithic/configuration/add-sim-card.sql` for this subscriber.
+
+After pulling commit `40092c7` on both fresh clones, restarted from the repo scripts:
+
+- CU/core from `/home/serber/cu-du/roles/cu/start.sh`
+- DU from `/home/serber/cu-du/roles/pi/start.sh`
+
+Verification after restart:
+
+- CN containers healthy.
+- MySQL subscriber row uses Ki `5686e601f3a1942d4c5cd262ba6b4b20` and OPc `aeb1cabd8ed7a09b48d17eb3d8af172c`.
+- CU runs from `/home/serber/cu-du/source/openairinterface5g/.../gnb-cu.conf`.
+- DU runs from `/home/serber/cu-du/source/openairinterface5g/.../gnb-pi.conf` with `-E`.
+- AMF authentication succeeds; no MAC failure after correcting the SIM credentials.
+- AMF reaches `5GMM-REGISTERED` for IMSI `001010000059449`.
+- SMF establishes PDU sessions and marks them active.
+- DU adds DRB 1 and DRB 2; LCID 5 user-plane byte counters increase.
+- `tcpdump` on `serber-firecell` shows bidirectional GTP-U on F1-U (`10.76.170.94:2152` <-> `10.76.170.38:2152`) and N3 (`192.168.70.129:2152` <-> `192.168.70.134:2152`).
+- `scripts/check-health.sh` passes when run locally with `SSHPASS=root4SERBER`.
+
+Residual observation: radio quality is currently marginal compared with the earlier best working snapshot. DU reports the UE in-sync, but recent RSRP moved between about `-104` and `-126`/worse with high downlink BLER. The repo reproducibility issue is fixed; any remaining throughput instability is likely RF placement/gain/channel quality rather than missing clone-time configuration.
