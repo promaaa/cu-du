@@ -23,7 +23,7 @@ usrp:
   max_rxgain: 114
   att_tx: 12
   att_rx: 12
-  prb: 51
+  prb: 24
   searchSpaceZero: 2
   controlResourceSetZero: 12
   ssb_perRACH_OccasionAndCB_PreamblesPerSSB: 4
