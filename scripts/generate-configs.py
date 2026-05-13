@@ -188,7 +188,7 @@ def apply_du_config(text, cfg):
 def apply_pi_config(text, cfg):
     total, text = apply_du_config(text, cfg)
     tpool_cfg = """
-@tpool = {
+tpool = {
   thread_list = (
     { core_id = 1; priority = 97; policy = "SCHED_FIFO"; },
     { core_id = 2; priority = 97; policy = "SCHED_FIFO"; },
