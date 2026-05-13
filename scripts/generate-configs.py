@@ -88,6 +88,17 @@ def replace_macvlan_addr(text, key, value):
     return count, new_text
 
 
+def ensure_ru_sdr_addrs(text, value):
+    """Set or insert the RU sdr_addrs line."""
+    n, text = replace_key_line(text, 'sdr_addrs', f'"serial={value}"')
+    if n:
+        return n, text
+    pattern = re.compile(r'^(\s*att_rx\s*=\s*.*?;\s*)$', re.MULTILINE)
+    replacement = r'\1\n         sdr_addrs      = "serial=' + str(value) + r'";'
+    new_text, count = pattern.subn(replacement, text, count=1)
+    return count, new_text
+
+
 def apply_cu_config(text, cfg):
     cu = cfg['cu']
     plmn = cfg['plmn']
@@ -149,7 +160,7 @@ def apply_du_config(text, cfg):
     n, text = replace_key_inline(text, 'initialDLBWPlocationAndBandwidth', str(initial_bwp)); total += n
     n, text = replace_key_inline(text, 'initialULBWPlocationAndBandwidth', str(initial_bwp)); total += n
 
-    n, text = replace_key_line(text, 'sdr_addrs', f'"serial={usrp["serial"]}"'); total += n
+    n, text = ensure_ru_sdr_addrs(text, usrp['serial']); total += n
     n, text = replace_key_line(text, 'clock_src', f'"{usrp["clock_src"]}"'); total += n
     n, text = replace_key_line(text, 'max_rxgain', str(usrp['max_rxgain'])); total += n
     n, text = replace_key_line(text, 'att_tx', str(usrp['att_tx'])); total += n
