@@ -1,7 +1,8 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-LOG_DIR="${LOG_DIR:-/tmp}"
+REPO_BASE="$HOME/cu-du"
+LOG_DIR="${LOG_DIR:-$REPO_BASE/logs}"
 PI_LOG="$LOG_DIR/pi.log"
 
 echo "[PI stop] Stopping PI DU nr-softmodem..."

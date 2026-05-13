@@ -13,15 +13,11 @@ export F1_SUBNET=10.76.170.0/25
 export CU_IP=10.76.170.38
 export CU_HOST=serber-firecell
 
-# DU host
-export DU_IP=10.76.170.100
-export DU_HOST=serber-minipc
-
 # PI host (Raspberry Pi 5 DU)
 export PI_IP=10.76.170.94
 export PI_HOST=serber-pi
-export PI_F1C_IP=10.76.170.102
-export PI_F1U_IP=10.76.170.103
+export PI_F1C_IP=10.76.170.94
+export PI_F1U_IP=10.76.170.94
 
 # NTP
 export NTP_IP=10.76.170.1

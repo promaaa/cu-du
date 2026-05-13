@@ -1,7 +1,8 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-LOG_DIR="${LOG_DIR:-/tmp}"
+REPO_BASE="$HOME/cu-du"
+LOG_DIR="${LOG_DIR:-$REPO_BASE/logs}"
 CU_LOG="$LOG_DIR/cu.log"
 
 echo "[CU stop] Stopping CU nr-softmodem..."

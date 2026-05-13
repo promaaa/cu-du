@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate gnb-cu.conf, gnb-du.conf, and gnb-pi.conf by modifying OAI reference configs."""
+"""Generate gnb-cu.conf and gnb-pi.conf by modifying OAI reference configs."""
 
 import os
 import sys
@@ -9,10 +9,8 @@ from ruamel.yaml import YAML
 
 REPO_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REF_CU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/cu_gnb.conf')
-REF_DU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/du_gnb.conf')
 REF_PI = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/du_gnb.conf')
 OUT_CU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.conf')
-OUT_DU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.conf')
 OUT_PI = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-pi.conf')
 CONF_DIR = os.path.join(REPO_BASE, 'conf')
 SIB8_SRC = os.path.join(REPO_BASE, 'sib8.conf')
@@ -140,15 +138,16 @@ def apply_du_config(text, cfg):
     n, text = replace_macvlan_addr(text, 'local_n_address', cu['f1c_ip']); total += n
     n, text = replace_macvlan_addr(text, 'remote_n_address', cu['remote_f1c_ip']); total += n
 
-    n, text = replace_key_line(text, 'local_n_portd', '2152'); total += n
-    n, text = replace_key_line(text, 'remote_n_portd', '2152'); total += n
+    f1u_port = str(cu.get('f1c_port', cu.get('remote_f1c_port', 2152)))
+    n, text = replace_key_line(text, 'local_n_portd', f1u_port); total += n
+    n, text = replace_key_line(text, 'remote_n_portd', f1u_port); total += n
 
     prb = usrp.get('prb', 51)
     initial_bwp = {24: 6325, 51: 13053, 106: 28875}.get(prb, 13053)
     n, text = replace_key_line(text, 'dl_carrierBandwidth', str(prb)); total += n
     n, text = replace_key_line(text, 'ul_carrierBandwidth', str(prb)); total += n
     n, text = replace_key_inline(text, 'initialDLBWPlocationAndBandwidth', str(initial_bwp)); total += n
-    n, text = replace_key_inline(text, 'initialULBWPlocationAndBandWidth', str(initial_bwp)); total += n
+    n, text = replace_key_inline(text, 'initialULBWPlocationAndBandwidth', str(initial_bwp)); total += n
 
     n, text = replace_key_line(text, 'sdr_addrs', f'"serial={usrp["serial"]}"'); total += n
     n, text = replace_key_line(text, 'clock_src', f'"{usrp["clock_src"]}"'); total += n
@@ -186,18 +185,7 @@ def apply_du_config(text, cfg):
 
 
 def apply_pi_config(text, cfg):
-    total, text = apply_du_config(text, cfg)
-    tpool_cfg = """
-tpool = {
-  thread_list = (
-    { core_id = 1; priority = 97; policy = "SCHED_FIFO"; },
-    { core_id = 2; priority = 97; policy = "SCHED_FIFO"; },
-    { core_id = 3; priority = 97; policy = "SCHED_FIFO"; }
-  );
-};
-"""
-    text += tpool_cfg
-    return total, text
+    return apply_du_config(text, cfg)
 
 
 def copy_sib8():
@@ -206,8 +194,8 @@ def copy_sib8():
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ('cu', 'du', 'pi', 'all'):
-        print("Usage: generate-configs.py cu|du|pi|all")
+    if len(sys.argv) < 2 or sys.argv[1] not in ('cu', 'pi', 'all'):
+        print("Usage: generate-configs.py cu|pi|all")
         sys.exit(1)
 
     mode = sys.argv[1]
@@ -224,19 +212,6 @@ def main():
         with open(OUT_CU, 'w') as f:
             f.write(text)
         print(f"Generated {OUT_CU} ({count} substitutions)")
-
-    if mode in ('du', 'all'):
-        if not os.path.exists(REF_DU):
-            print(f"ERROR: Reference DU config not found at {REF_DU}")
-            sys.exit(1)
-        cfg = load_yaml(os.path.join(CONF_DIR, 'du-cfg.yml'))
-        with open(REF_DU) as f:
-            text = f.read()
-        count, text = apply_du_config(text, cfg)
-        os.makedirs(os.path.dirname(OUT_DU), exist_ok=True)
-        with open(OUT_DU, 'w') as f:
-            f.write(text)
-        print(f"Generated {OUT_DU} ({count} substitutions)")
 
     if mode in ('pi', 'all'):
         if not os.path.exists(REF_PI):

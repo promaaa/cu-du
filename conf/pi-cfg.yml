@@ -21,12 +21,12 @@ usrp:
   clock_src: internal
   max_pdschReferenceSignalPower: -27
   max_rxgain: 114
-  att_tx: 12
+  att_tx: 3
   att_rx: 12
-  prb: 51
+  prb: 106
   searchSpaceZero: 2
   controlResourceSetZero: 12
-  ssb_perRACH_OccasionAndCB_PreamblesPerSSB: 4
+  ssb_perRACH_OccasionAndCB_PreamblesPerSSB: 14
   absoluteFrequencySSB: 641280
   dl_absoluteFrequencyPointA: 640008
   dl_offsetToCarrier: 0

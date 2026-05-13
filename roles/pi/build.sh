@@ -14,8 +14,12 @@ source "$CONF_DIR/env.sh"
 echo "[PI build] Starting on serber-pi..."
 
 if [ ! -d "$OAI_DIR/.git" ]; then
-    echo "[PI build] Cloning OAI source..."
-    git clone https://gitlab.eurecom.fr/oai/openairinterface5g.git "$OAI_DIR"
+    echo "[PI build] Fetching OAI source into repo overlay..."
+    TMP_DIR="$(mktemp -d)"
+    git clone https://gitlab.eurecom.fr/oai/openairinterface5g.git "$TMP_DIR/openairinterface5g"
+    mkdir -p "$OAI_DIR"
+    rsync -a "$TMP_DIR/openairinterface5g/" "$OAI_DIR/"
+    rm -rf "$TMP_DIR"
 fi
 
 cd "$OAI_DIR"
