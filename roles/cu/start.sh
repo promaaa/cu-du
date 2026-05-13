@@ -46,7 +46,7 @@ sleep 20
 docker compose -f "$COMPOSE_FILE" ps
 
 echo "[CU start] Applying UPF downlink shaper..."
-docker exec oai-upf tc qdisc replace dev tun0 root tbf rate 1500kbit burst 64kbit latency 400ms || true
+docker exec oai-upf tc qdisc replace dev tun0 root tbf rate 1500kbit burst 8kbit latency 400ms || true
 docker exec oai-upf tc qdisc show dev tun0 || true
 
 echo "[CU start] Starting CU binary..."
