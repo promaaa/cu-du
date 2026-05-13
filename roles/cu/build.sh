@@ -34,7 +34,7 @@ elif [ -f "$PATCHES_DIR/oai-warning.patch" ]; then
     git apply "$PATCHES_DIR/oai-warning.patch" || echo "[CU build] Patch failed, continuing..."
 fi
 
-if ! command -v uhd_find_devices &>/dev/null || ! uhd_find_devices 2>&1 | grep -q "B210"; then
+if ! command -v uhd_config_info &>/dev/null; then
     echo "[CU build] Building UHD from source..."
     UHD_DIR="$REPO_BASE/uhd"
     if [ ! -d "$UHD_DIR/.git" ]; then
@@ -59,7 +59,7 @@ fi
 if [ ! -d /tmp/asn1c ] || [ ! -f /tmp/asn1c/skeleton/asn1_constants.h ]; then
     echo "[CU build] Installing OAI dependencies..."
     cd "$OAI_DIR/cmake_targets"
-    sudo ./build_oai -I
+    sudo ./build_oai -I || echo "[CU build] Dependency installer failed; continuing because dependencies may already be present"
 else
     echo "[CU build] Dependencies already installed, skipping -I"
 fi

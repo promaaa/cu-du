@@ -34,7 +34,7 @@ elif [ -f "$PATCHES_DIR/oai-warning.patch" ]; then
     git apply "$PATCHES_DIR/oai-warning.patch" || echo "[PI build] Patch failed, continuing..."
 fi
 
-if ! command -v uhd_find_devices &>/dev/null || ! uhd_find_devices 2>&1 | grep -q "B210"; then
+if ! command -v uhd_config_info &>/dev/null; then
     echo "[PI build] Building UHD from source..."
     UHD_DIR="$REPO_BASE/uhd"
     if [ ! -d "$UHD_DIR/.git" ]; then
@@ -56,10 +56,14 @@ else
     echo "[PI build] UHD already installed"
 fi
 
+if ! uhd_find_devices 2>&1 | grep -q "35F8ABA"; then
+    echo "[PI build] WARNING: B210 serial 35F8ABA not detected right now. Build can continue, but DU start will require it."
+fi
+
 if [ ! -d /tmp/asn1c ] || [ ! -f /tmp/asn1c/skeleton/asn1_constants.h ]; then
     echo "[PI build] Installing OAI dependencies..."
     cd "$OAI_DIR/cmake_targets"
-    sudo ./build_oai -I
+    sudo ./build_oai -I || echo "[PI build] Dependency installer failed; continuing because dependencies may already be present"
 else
     echo "[PI build] Dependencies already installed, skipping -I"
 fi
