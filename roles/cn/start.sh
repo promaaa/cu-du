@@ -13,5 +13,11 @@ docker compose -f "$CN_DIR/docker-compose.yml" up -d
 echo "[CN start] Waiting for CN to be healthy (~20s)..."
 sleep 20
 
+echo "[CN start] Applying data plane fixes (MTU & Checksum)..."
+sudo ethtool -K enp6s0 tx off rx off || true
+sudo docker exec oai-upf ethtool -K eth0 tx off rx off || true
+sudo docker exec oai-upf iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu || true
+
+
 echo "[CN start] CN status:"
 docker compose -f "$CN_DIR/docker-compose.yml" ps

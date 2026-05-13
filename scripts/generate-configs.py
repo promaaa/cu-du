@@ -7,7 +7,7 @@ import shutil
 import re
 from ruamel.yaml import YAML
 
-REPO_BASE = os.environ.get('HOME', os.path.expanduser('~')) + '/cu-du'
+REPO_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REF_CU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/cu_gnb.conf')
 REF_DU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/du_gnb.conf')
 REF_PI = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/du_gnb.conf')
@@ -140,7 +140,7 @@ def apply_du_config(text, cfg):
     n, text = replace_macvlan_addr(text, 'local_n_address', cu['f1c_ip']); total += n
     n, text = replace_macvlan_addr(text, 'remote_n_address', cu['remote_f1c_ip']); total += n
 
-    n, text = replace_key_line(text, 'local_n_portd', '2153'); total += n
+    n, text = replace_key_line(text, 'local_n_portd', '2152'); total += n
     n, text = replace_key_line(text, 'remote_n_portd', '2152'); total += n
 
     prb = usrp.get('prb', 51)

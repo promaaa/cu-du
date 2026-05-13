@@ -1,8 +1,8 @@
 host: serber-pi
 role: pi
 plmn:
-  mcc: "001"
-  mnc: "01"
+  mcc: 1
+  mnc: 1
   mnc_length: 2
 cu:
   f1c_ip: 10.76.170.94
@@ -16,7 +16,7 @@ cu:
   tac: 1
 usrp:
   type: b200
-  serial: 8002816
+  serial: 35F8ABA
   band: 78
   clock_src: internal
   max_pdschReferenceSignalPower: -27
