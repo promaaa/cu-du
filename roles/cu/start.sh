@@ -54,7 +54,8 @@ docker exec oai-upf tc qdisc show dev tun0 || true
 
 echo "[CU start] Starting CU binary..."
 cd "$OAI_BUILD_DIR"
-sudo ./nr-softmodem \
+nohup sudo ./nr-softmodem \
     -O "$OAI_CONF_DIR/gnb-cu.conf" \
     --log_config.global_log_level info \
-    | tee "$CU_LOG"
+    | tee -a "$CU_LOG" &
+echo "[CU start] CU binary started in background"

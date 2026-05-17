@@ -10,8 +10,10 @@ from ruamel.yaml import YAML
 REPO_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REF_CU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/cu_gnb.conf')
 REF_PI = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/du_gnb.conf')
-OUT_CU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.conf')
-OUT_PI = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-pi.conf')
+OUT_CU  = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.conf')
+OUT_PI  = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-pi.conf')
+OUT_MINIPC_CU = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-minipc-cu.conf')
+OUT_MINIPC    = os.path.join(REPO_BASE, 'source/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-minipc.conf')
 CONF_DIR = os.path.join(REPO_BASE, 'conf')
 SIB8_SRC = os.path.join(REPO_BASE, 'sib8.conf')
 SIB8_DST = os.path.join(REPO_BASE, 'source/openairinterface5g/sib8.conf')
@@ -124,7 +126,7 @@ def apply_cu_config(text, cfg):
 
     n, text = replace_key_line(text, 'GNB_IPV4_ADDRESS_FOR_NG_AMF', f'"{cu["ng_ip"]}"'); total += n
     n, text = replace_key_line(text, 'GNB_IPV4_ADDRESS_FOR_NGU', f'"{cu["ng_ip"]}"'); total += n
-    n, text = replace_key_line(text, 'GNB_PORT_FOR_S1U', '2152'); total += n
+    n, text = replace_key_line(text, 'GNB_PORT_FOR_S1U', str(cu['f1c_port'])); total += n
 
     n, text = replace_key_inline(text, 'sst', '1'); total += n
 
@@ -205,8 +207,8 @@ def copy_sib8():
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ('cu', 'pi', 'all'):
-        print("Usage: generate-configs.py cu|pi|all")
+    if len(sys.argv) < 2 or sys.argv[1] not in ('cu', 'pi', 'all', 'minipc-cu', 'minipc', 'minipc-all'):
+        print("Usage: generate-configs.py cu|pi|all|minipc-cu|minipc|minipc-all")
         sys.exit(1)
 
     mode = sys.argv[1]
@@ -236,6 +238,32 @@ def main():
         with open(OUT_PI, 'w') as f:
             f.write(text)
         print(f"Generated {OUT_PI} ({count} substitutions)")
+
+    if mode in ('minipc-cu', 'minipc-all'):
+        if not os.path.exists(REF_CU):
+            print(f"ERROR: Reference CU config not found at {REF_CU}")
+            sys.exit(1)
+        cfg = load_yaml(os.path.join(CONF_DIR, 'minipc-cu-cfg.yml'))
+        with open(REF_CU) as f:
+            text = f.read()
+        count, text = apply_cu_config(text, cfg)
+        os.makedirs(os.path.dirname(OUT_MINIPC_CU), exist_ok=True)
+        with open(OUT_MINIPC_CU, 'w') as f:
+            f.write(text)
+        print(f"Generated {OUT_MINIPC_CU} ({count} substitutions)")
+
+    if mode in ('minipc', 'minipc-all'):
+        if not os.path.exists(REF_PI):
+            print(f"ERROR: Reference PI config not found at {REF_PI}")
+            sys.exit(1)
+        cfg = load_yaml(os.path.join(CONF_DIR, 'minipc-cfg.yml'))
+        with open(REF_PI) as f:
+            text = f.read()
+        count, text = apply_du_config(text, cfg)
+        os.makedirs(os.path.dirname(OUT_MINIPC), exist_ok=True)
+        with open(OUT_MINIPC, 'w') as f:
+            f.write(text)
+        print(f"Generated {OUT_MINIPC} ({count} substitutions)")
 
     copy_sib8()
 

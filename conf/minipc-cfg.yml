@@ -1,0 +1,33 @@
+host: serber-minipc
+role: minipc
+plmn:
+  mcc: 1
+  mnc: 1
+  mnc_length: 2
+cu:
+  f1c_ip: 10.76.170.100
+  f1u_ip: 10.76.170.100
+  f1c_port: 2153
+  remote_f1c_ip: 10.76.170.38
+  remote_f1c_port: 2153
+  gnb_id: 0xe00
+  gnb_du_id: 0xe01
+  gnb_name: gNB-CU-MINIPC
+  tac: 1
+usrp:
+  type: b200
+  serial: 8002816
+  band: 78
+  clock_src: internal
+  max_pdschReferenceSignalPower: -27
+  max_rxgain: 114
+  att_tx: 3
+  att_rx: 12
+  prb: 106
+  searchSpaceZero: 2
+  controlResourceSetZero: 12
+  ssb_perRACH_OccasionAndCB_PreamblesPerSSB: 14
+  absoluteFrequencySSB: 641280
+  dl_absoluteFrequencyPointA: 640008
+  dl_offsetToCarrier: 0
+  ssPBCH_BlockPower: -25

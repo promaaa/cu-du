@@ -32,8 +32,9 @@ python3 "$SCRIPT_DIR/../../scripts/generate-configs.py" pi
 
 echo "[PI start] Starting PI DU binary..."
 cd "$OAI_BUILD_DIR"
-sudo ./nr-softmodem \
+nohup sudo ./nr-softmodem \
     -O "$OAI_CONF_DIR/gnb-pi.conf" \
     --log_config.global_log_level info \
     -E \
-    | tee "$PI_LOG"
+    | tee -a "$PI_LOG" &
+echo "[PI start] DU binary started in background"

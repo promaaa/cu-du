@@ -1,0 +1,17 @@
+host: serber-firecell
+role: cu
+plmn:
+  mcc: 1
+  mnc: 1
+  mnc_length: 2
+amf:
+  ip: 192.168.70.132
+  port: 38412
+cu:
+  f1c_ip: 10.76.170.38
+  f1c_port: 2153
+  f1u_ip: 10.76.170.38
+  ng_ip: 192.168.70.129
+  gnb_id: 0xe00
+  gnb_name: gNB-CU-MINIPC
+  tac: 1
