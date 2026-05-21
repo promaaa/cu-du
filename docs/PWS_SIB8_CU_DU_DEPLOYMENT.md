@@ -19,6 +19,12 @@ Patch file:
 patches/oai-pws-sib8-cu-du.patch
 ```
 
+Canonical warning config:
+
+```bash
+conf/sib8.conf
+```
+
 Apply it locally or remotely with:
 
 ```bash
@@ -56,8 +62,9 @@ CU RRC SIB8 config
 
 ## Warning Configuration
 
-The patch installs `sib8.conf` at the OAI source root. The running softmodem
-loads it from the build directory using `../../../sib8.conf`.
+Keep the repository copy in `conf/sib8.conf`. The apply script copies it into
+the target OAI source root as `sib8.conf`, because the patched softmodem loads
+it from the build directory using `../../../sib8.conf`.
 
 Example:
 
@@ -68,6 +75,13 @@ dataCodingScheme = 48
 warningType = 0000
 text = "Hello this is a test warning message."
 mode = 0
+```
+
+After editing the repo copy, redeploy it to each OAI source tree:
+
+```bash
+scp conf/sib8.conf serber-firecell:/home/serber/cu-du/source/openairinterface5g/sib8.conf
+scp conf/sib8.conf serber-minipc:/home/serber/monolithic/openairinterface5g/sib8.conf
 ```
 
 Notes:

@@ -5,6 +5,11 @@ A distributed OAI 5G NR stack with **CU/DU split** across two hosts:
 - **serber-firecell** (10.76.170.38) — CU (RRC + PDCP + SDAP) + 5G Core Network
 - **serber-minipc** (10.76.170.100) — DU (MAC + RLC + PHY) + USRP B210
 
+The repo also packages the tested **PWS / emergency warning broadcast over
+SIB8** patch for this split architecture. The CU builds SIB8 at RRC level,
+sends it to the DU over F1AP `WriteReplaceWarningRequest`, and the DU schedules
+the resulting `SystemInformation` over BCCH-DL-SCH.
+
 ## Topology
 
 ```mermaid
@@ -66,6 +71,17 @@ flowchart TB
 git clone https://github.com/promaaa/cu-du.git ~/cu-du
 ```
 
+## Repository Layout
+
+| Path | Purpose |
+|---|---|
+| `conf/` | Source YAML configs plus `sib8.conf`, the editable PWS warning config |
+| `patches/` | OAI patch files, including the CU/DU SIB8 patch |
+| `scripts/` | Config generation, patch application, deployment, and validation helpers |
+| `roles/` | Host-specific start/build/stop helpers |
+| `docs/` | Detailed deployment notes and validation runbooks |
+| `source/` | Generated or vendored runtime assets and OAI config output |
+
 ## Prerequisites
 
 ### Both Hosts
@@ -125,6 +141,51 @@ cd cmake_targets && sudo ./build_oai -I
 # Build nr-softmodem
 sudo ./build_oai -w USRP --ninja --gNB -C
 ```
+
+## PWS / SIB8 Emergency Alerts
+
+The PWS implementation is distributed as an OAI patch:
+
+```bash
+patches/oai-pws-sib8-cu-du.patch
+```
+
+The warning payload is configured in:
+
+```bash
+conf/sib8.conf
+```
+
+Example:
+
+```ini
+messageIdentifier = 1112
+serialNumber = FF00
+dataCodingScheme = 48
+warningType = 0000
+text = "Hello this is a test warning message."
+mode = 0
+```
+
+Apply the patch to an OAI source tree:
+
+```bash
+scripts/apply-pws-sib8-cu-du.sh /path/to/openairinterface5g
+```
+
+Apply it to the tested CU/DU hosts:
+
+```bash
+scripts/apply-pws-sib8-cu-du.sh serber-firecell:/home/serber/cu-du/source/openairinterface5g
+scripts/apply-pws-sib8-cu-du.sh serber-minipc:/home/serber/monolithic/openairinterface5g
+```
+
+The apply script copies `conf/sib8.conf` into the target OAI source root as
+`sib8.conf`, because the patched softmodem loads it from the build directory
+using `../../../sib8.conf`.
+
+Detailed architecture, build, run, and validation notes live in
+`docs/PWS_SIB8_CU_DU_DEPLOYMENT.md`.
 
 ## Core Network Setup
 
@@ -256,6 +317,10 @@ docker exec oai-cn5g-minipc-oai-upf-1 ifconfig tun0 | grep -E "RX|TX"
 
 # Check F1 link in CU log
 tail /tmp/cu-minipc.log | grep -E "F1|Connected"
+
+# Check PWS/SIB8 path
+tail -n 260 /tmp/cu-minipc.log | grep -Ei "sib8|warning|pws|f1ap"
+tail -n 260 /tmp/du-minipc.log | grep -Ei "sib8|warning|pws|systeminformation|bcch|si"
 ```
 
 ## Troubleshooting
@@ -278,6 +343,16 @@ sudo uhd_find_devices
 ### AUSF "Resource not found"
 Subscriber not in database — re-run the seed SQL above.
 
+### PWS Works But Phone Has No Internet
+- Make sure the phone's data APN/DNN is `oai`, not `ims`.
+- Toggle airplane mode after changing APN/DNN.
+- Confirm SMF created the `oai` PDU session and UPF traffic is moving:
+
+```bash
+docker logs oai-cn5g-minipc-oai-smf-1 2>&1 | grep -E "Requested DNN|UE IPv4|PDU Session Status Active"
+docker logs oai-cn5g-minipc-oai-upf-1 2>&1 | grep -Ei "PDR|TEID|UE IPv4|error|fail"
+```
+
 ### Docker Network Conflicts
 If containers fail to start with "networks have same bridge name", ensure the compose file uses a unique bridge name (e.g., `oai-cn5g-minipc` not `oai-cn5g`).
 
@@ -286,6 +361,7 @@ If containers fail to start with "networks have same bridge name", ensure the co
 | Script | Description |
 |---|---|
 | `scripts/generate-configs.py` | Generate gnb configs from YAML (`cu`, `pi`, `minipc`, `minipc-cu`, `minipc-all` modes) |
+| `scripts/apply-pws-sib8-cu-du.sh` | Apply the PWS/SIB8 OAI patch locally or over SSH and install `conf/sib8.conf` |
 | `roles/cn/start.sh` | Start core network containers |
 | `roles/cu/start.sh` | Start CU process |
 | `roles/pi/start.sh` | Start DU process (serber-pi) |
@@ -295,3 +371,4 @@ If containers fail to start with "networks have same bridge name", ensure the co
 | Date | Setup | Status |
 |---|---|---|
 | 2026-05-17 | CU/DU split serber-firecell + serber-minipc | Working — 5G bars + internet |
+| 2026-05-21 | PWS/SIB8 over CU/DU split | Working — phone received PWS; data works with `oai` APN/DNN |
